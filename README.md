@@ -1,6 +1,6 @@
 # Simple Patch Tool
 
-SimplePatchTool is a general-purpose patcher for **standalone** applications.
+SimplePatchTool is a general-purpose patcher library for **standalone** applications.
 
 ## A. FEATURES
 
@@ -12,9 +12,9 @@ SimplePatchTool is a general-purpose patcher for **standalone** applications.
 - supports encrypting/signing important patch files as an additional layer of security
 - compatible with **.NET Standard 2.0** (the *optional* XML signing module requires [additional NuGet package(s)](https://www.nuget.org/packages/System.Security.Cryptography.Xml/)) and **Mono 2.0** (according to official [.NET Portability Analyzer](https://docs.microsoft.com/en-us/dotnet/standard/analyzers/portability-analyzer))
 
-Currently, this library is only tested on a 64-bit Windows 10 installment. Please note that SimplePatchTool is not yet battle tested thoroughly, so you may encounter unknown issues while integrating it to your project. Don't hesitate to open an Issue when you encounter one!
+Currently, this library is only tested on a 64-bit Windows 10 installment. Please note that SimplePatchTool is not yet battle tested thoroughly, so you may encounter unknown issues while integrating it into your projects. Don't hesitate to open an Issue when you encounter one!
 
-*Unity plugin coming very soon...*
+**Unity 3D** port available at: https://github.com/yasirkula/UnitySimplePatchTool
 
 ## B. LICENSE
 
