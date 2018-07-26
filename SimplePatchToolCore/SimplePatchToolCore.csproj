@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1F98F5CF-E3F9-47B3-89F0-683936395B4A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SimplePatchToolCore</RootNamespace>
+    <AssemblyName>SimplePatchTool</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.XML" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="External\SharpZipLib\Core\Exceptions\SharpZipBaseException.cs" />
+    <Compile Include="External\SharpZipLib\Core\Exceptions\StreamDecodingException.cs" />
+    <Compile Include="External\SharpZipLib\Core\Exceptions\StreamUnsupportedException.cs" />
+    <Compile Include="External\SharpZipLib\Core\Exceptions\UnexpectedEndOfStreamException.cs" />
+    <Compile Include="External\SharpZipLib\Core\Exceptions\ValueOutOfRangeException.cs" />
+    <Compile Include="External\SharpZipLib\Core\FileSystemScanner.cs" />
+    <Compile Include="External\SharpZipLib\Core\INameTransform.cs" />
+    <Compile Include="External\SharpZipLib\Core\InvalidNameException.cs" />
+    <Compile Include="External\SharpZipLib\Core\IScanFilter.cs" />
+    <Compile Include="External\SharpZipLib\Core\NameFilter.cs" />
+    <Compile Include="External\SharpZipLib\Core\PathFilter.cs" />
+    <Compile Include="External\SharpZipLib\Core\StreamUtils.cs" />
+    <Compile Include="External\SharpZipLib\Core\WindowsPathUtils.cs" />
+    <Compile Include="External\SharpZipLib\Tar\InvalidHeaderException.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarArchive.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarBuffer.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarEntry.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarException.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarExtendedHeaderReader.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarHeader.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarInputStream.cs" />
+    <Compile Include="External\SharpZipLib\Tar\TarOutputStream.cs" />
+    <Compile Include="Serialization\VersionCode.cs" />
+    <Compile Include="External\7zip\Common\CommandLineParser.cs" />
+    <Compile Include="External\7zip\Common\CRC.cs" />
+    <Compile Include="External\7zip\Common\InBuffer.cs" />
+    <Compile Include="External\7zip\Common\OutBuffer.cs" />
+    <Compile Include="External\7zip\Compress\LzmaAlone\LzmaAlone.cs" />
+    <Compile Include="External\7zip\Compress\LzmaAlone\LzmaBench.cs" />
+    <Compile Include="External\7zip\Compress\LZMA\LzmaBase.cs" />
+    <Compile Include="External\7zip\Compress\LZMA\LzmaDecoder.cs" />
+    <Compile Include="External\7zip\Compress\LZMA\LzmaEncoder.cs" />
+    <Compile Include="External\7zip\Compress\LZ\IMatchFinder.cs" />
+    <Compile Include="External\7zip\Compress\LZ\LzBinTree.cs" />
+    <Compile Include="External\7zip\Compress\LZ\LzInWindow.cs" />
+    <Compile Include="External\7zip\Compress\LZ\LzOutWindow.cs" />
+    <Compile Include="External\7zip\Compress\RangeCoder\RangeCoder.cs" />
+    <Compile Include="External\7zip\Compress\RangeCoder\RangeCoderBit.cs" />
+    <Compile Include="External\7zip\Compress\RangeCoder\RangeCoderBitTree.cs" />
+    <Compile Include="External\7zip\ICoder.cs" />
+    <Compile Include="Utilities\ZipUtils.cs" />
+    <Compile Include="Other\Localization.cs" />
+    <Compile Include="External\Octodiff\Core\Adler32RollingChecksum.cs" />
+    <Compile Include="External\Octodiff\Core\Adler32RollingChecksumV2.cs" />
+    <Compile Include="External\Octodiff\Core\AggregateCopyOperationsDecorator.cs" />
+    <Compile Include="External\Octodiff\Core\BinaryDeltaReader.cs" />
+    <Compile Include="External\Octodiff\Core\BinaryDeltaWriter.cs" />
+    <Compile Include="External\Octodiff\Core\BinaryFormat.cs" />
+    <Compile Include="External\Octodiff\Core\ChunkSignature.cs" />
+    <Compile Include="External\Octodiff\Core\ChunkSignatureChecksumComparer.cs" />
+    <Compile Include="External\Octodiff\Core\CompatibilityException.cs" />
+    <Compile Include="External\Octodiff\Core\CorruptFileFormatException.cs" />
+    <Compile Include="External\Octodiff\Core\DataRange.cs" />
+    <Compile Include="External\Octodiff\Core\DeltaApplier.cs" />
+    <Compile Include="External\Octodiff\Core\DeltaBuilder.cs" />
+    <Compile Include="External\Octodiff\Core\DeltaStatistics.cs" />
+    <Compile Include="External\Octodiff\Core\HashAlgorithmWrapper.cs" />
+    <Compile Include="External\Octodiff\Core\IDeltaReader.cs" />
+    <Compile Include="External\Octodiff\Core\IDeltaWriter.cs" />
+    <Compile Include="External\Octodiff\Core\IHashAlgorithm.cs" />
+    <Compile Include="External\Octodiff\Core\IRollingChecksum.cs" />
+    <Compile Include="External\Octodiff\Core\ISignatureReader.cs" />
+    <Compile Include="External\Octodiff\Core\ISignatureWriter.cs" />
+    <Compile Include="External\Octodiff\Core\Signature.cs" />
+    <Compile Include="External\Octodiff\Core\SignatureBuilder.cs" />
+    <Compile Include="External\Octodiff\Core\SignatureReader.cs" />
+    <Compile Include="External\Octodiff\Core\SignatureWriter.cs" />
+    <Compile Include="External\Octodiff\Core\SupportedAlgorithms.cs" />
+    <Compile Include="External\Octodiff\Core\UsageException.cs" />
+    <Compile Include="External\Octodiff\Diagnostics\ConsoleProgressReporter.cs" />
+    <Compile Include="External\Octodiff\Diagnostics\IProgressReporter.cs" />
+    <Compile Include="External\Octodiff\Diagnostics\NullProgressReporter.cs" />
+    <Compile Include="Utilities\OctoUtils.cs" />
+    <Compile Include="Communications\PatchProgressInfo.cs" />
+    <Compile Include="Other\PatchDownloadManager.cs" />
+    <Compile Include="Communications\PatchIntercomms.cs" />
+    <Compile Include="Utilities\PatchUtils.cs" />
+    <Compile Include="Core\IncrementalPatchApplier.cs" />
+    <Compile Include="Serialization\PatchInfo.cs" />
+    <Compile Include="Serialization\VersionInfo.cs" />
+    <Compile Include="Utilities\PatchParameters.cs" />
+    <Compile Include="Core\PatchCreator.cs" />
+    <Compile Include="Core\RepairApplier.cs" />
+    <Compile Include="Core\PatchUpdater.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Core\SimplePatchTool.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="External\7zip\LICENSE" />
+    <None Include="External\Octodiff\LICENSE" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="External\SharpZipLib\LICENSE" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
