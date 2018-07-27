@@ -6,7 +6,7 @@ SimplePatchTool is a general-purpose patcher library for **standalone** applicat
 
 - written completely in **C#**
 - supports **repair patching** as well as **binary diff patching**
-- gives you complete control over where you store the patch files (you can even host your files on Google Drive™)
+- gives you complete control over where you store the patch files at (you can even host your files on Google Drive™)
 - supports self patching (e.g. launcher patching itself)
 - does not request admin permissions unless necessary
 - supports encrypting/signing important patch files as an additional layer of security

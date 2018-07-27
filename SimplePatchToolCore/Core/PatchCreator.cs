@@ -241,9 +241,6 @@ namespace SimplePatchToolCore
 		/// <exception cref = "FormatException">projectName contains invalid character(s)</exception>
 		private PatchResult CreatePatch()
 		{
-			if( !generateRepairPatch && !GenerateIncrementalPatch )
-				return PatchResult.Success;
-
 			patch = new VersionInfo()
 			{
 				Name = projectName, // throws FormatException if 'projectName' contains invalid character(s)
