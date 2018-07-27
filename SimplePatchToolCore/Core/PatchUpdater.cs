@@ -86,8 +86,26 @@ namespace SimplePatchToolCore
 				}
 			}
 
+			for( int i = 0; i < VersionInfo.Patches.Count; i++ )
+			{
+				IncrementalPatch patch = VersionInfo.Patches[i];
+
+				string downloadLink;
+				if( downloadLinks.TryGetValue( patch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION, out downloadLink ) )
+				{
+					patch.DownloadURL = downloadLink;
+					updateCount++;
+				}
+
+				if( downloadLinks.TryGetValue( patch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION, out downloadLink ) )
+				{
+					patch.InfoURL = downloadLink;
+					updateCount++;
+				}
+			}
+
 			if( Logger != null )
-				Logger( Localization.Get( StringId.XDownloadLinksAreUpdatedSuccessfully, updateCount, VersionInfo.Files.Count ) );
+				Logger( Localization.Get( StringId.XDownloadLinksAreUpdatedSuccessfully, updateCount, updateCount <= VersionInfo.Files.Count ? VersionInfo.Files.Count : updateCount ) );
 
 			return true;
 		}
