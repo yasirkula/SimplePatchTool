@@ -13,9 +13,6 @@
 		public const string LOG_FILE_NAME = "logs.dat";
 		public const long LOG_FILE_MAX_SIZE = 4 * 1024 * 1024L; // 4 MB
 
-		public const string GOOGLE_DRIVE_DOMAIN = "https://drive.google.com";
-		public const string GOOGLE_DRIVE_DOMAIN2 = "drive.google.com";
-
 		public const string CACHE_DATE_HOLDER_FILENAME = "time.dat";
 		public const int CACHE_DATE_EXPIRE_DAYS = 14;
 

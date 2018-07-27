@@ -133,6 +133,11 @@ namespace SimplePatchToolCore
 			return MaintenanceCheckResult.Maintenance_AbortApp;
 		}
 
+		private bool IsGoogleDriveURL( string url )
+		{
+			return url.StartsWith( "https://drive.google.com", StringComparison.OrdinalIgnoreCase ) || url.StartsWith( "drive.google.com", StringComparison.OrdinalIgnoreCase );
+		}
+
 		private bool CalculateDownloadStats( long bytesReceived, long totalBytesToReceive, double deltaSeconds )
 		{
 			if( downloadHandler.Progress == null )
@@ -161,6 +166,9 @@ namespace SimplePatchToolCore
 				return false;
 			}
 
+			if( IsGoogleDriveURL( url ) )
+				url = PatchUtils.GetGoogleDriveDownloadLinkFromUrl( url );
+
 			WebRequest request = WebRequest.Create( url );
 			request.Method = "HEAD";
 			request.Timeout = PatchParameters.FileAvailabilityCheckTimeout;
@@ -184,7 +192,7 @@ namespace SimplePatchToolCore
 						if( exResponse.StatusCode == HttpStatusCode.ServiceUnavailable )
 						{
 							// Drive returns 503 error while requesting HEAD for valid download links
-							if( url.StartsWith( PatchParameters.GOOGLE_DRIVE_DOMAIN ) || url.StartsWith( PatchParameters.GOOGLE_DRIVE_DOMAIN2 ) )
+							if( IsGoogleDriveURL( url ) )
 								return true;
 						}
 					}
@@ -198,6 +206,9 @@ namespace SimplePatchToolCore
 		{
 			if( string.IsNullOrEmpty( url ) )
 				return null;
+
+			if( IsGoogleDriveURL( url ) )
+				url = PatchUtils.GetGoogleDriveDownloadLinkFromUrl( url );
 
 			for( int i = 0; i < PatchParameters.FailedDownloadsRetryLimit; i++ )
 			{
@@ -255,8 +266,10 @@ namespace SimplePatchToolCore
 				comms.SetProgress( downloadHandler.Progress );
 			}
 
-			if( url.StartsWith( PatchParameters.GOOGLE_DRIVE_DOMAIN ) || url.StartsWith( PatchParameters.GOOGLE_DRIVE_DOMAIN2 ) )
+			if( IsGoogleDriveURL( url ) )
 			{
+				url = PatchUtils.GetGoogleDriveDownloadLinkFromUrl( url );
+
 				verifyDownloadSize = false;
 				return DownloadGoogleDriveFileFromURLToPath( url, path );
 			}
@@ -316,10 +329,6 @@ namespace SimplePatchToolCore
 		// if warning prompt occurs
 		private FileInfo DownloadGoogleDriveFileFromURLToPath( string url, string path )
 		{
-			// You can comment the statement below if the provided url is guaranteed to be in the following format:
-			// https://drive.google.com/uc?id=FILEID&export=download
-			url = PatchUtils.GetGoogleDriveDownloadLinkFromUrl( url );
-
 			FileInfo downloadedFile;
 
 			// Sometimes Drive returns an NID cookie instead of a download_warning cookie at first attempt,
