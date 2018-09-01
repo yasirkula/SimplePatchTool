@@ -52,7 +52,7 @@ namespace SimplePatchToolCore
 				return item.DownloadURL;
 
 			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
-				return BaseDownloadURL + item.Path + PatchParameters.COMPRESSED_FILE_EXTENSION;
+				return BaseDownloadURL + item.Path.Replace( '\\', '/' ) + PatchParameters.COMPRESSED_FILE_EXTENSION;
 
 			return null;
 		}

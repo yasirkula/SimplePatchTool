@@ -69,7 +69,7 @@ namespace SimplePatchToolCore
 					continue;
 				}
 
-				downloadLinks[downloadLinkRaw.Substring( 0, separatorIndex )] = downloadLinkRaw.Substring( separatorIndex + 1 );
+				downloadLinks[downloadLinkRaw.Substring( 0, separatorIndex ).Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar )] = downloadLinkRaw.Substring( separatorIndex + 1 );
 			}
 
 			int updateCount = 0;
@@ -78,8 +78,8 @@ namespace SimplePatchToolCore
 				VersionItem item = VersionInfo.Files[i];
 
 				string downloadLink;
-				if( downloadLinks.TryGetValue( item.Path, out downloadLink ) ||
-					downloadLinks.TryGetValue( item.Path + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) )
+				if( downloadLinks.TryGetValue( item.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar ), out downloadLink ) ||
+					downloadLinks.TryGetValue( item.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) )
 				{
 					item.DownloadURL = downloadLink;
 					updateCount++;

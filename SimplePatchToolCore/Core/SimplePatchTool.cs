@@ -797,7 +797,7 @@ namespace SimplePatchToolCore
 					if( !comms.DownloadManager.FileExistsAtUrl( comms.VersionInfo.GetInfoURLFor( incrementalPatch ), out fileSize ) )
 					{
 						FailReason = PatchFailReason.FileDoesNotExistOnServer;
-						FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersionBrief() + PatchParameters.PATCH_INFO_EXTENSION );
+						FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION );
 
 						return false;
 					}
@@ -805,14 +805,14 @@ namespace SimplePatchToolCore
 					if( !comms.DownloadManager.FileExistsAtUrl( comms.VersionInfo.GetDownloadURLFor( incrementalPatch ), out fileSize ) )
 					{
 						FailReason = PatchFailReason.FileDoesNotExistOnServer;
-						FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersionBrief() + PatchParameters.PATCH_FILE_EXTENSION );
+						FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION );
 
 						return false;
 					}
 					else if( fileSize > 0L && fileSize != incrementalPatch.PatchSize )
 					{
 						FailReason = PatchFailReason.FileIsNotValidOnServer;
-						FailDetails = Localization.Get( StringId.E_FileXIsNotValidOnServer, incrementalPatch.PatchVersionBrief() + PatchParameters.PATCH_FILE_EXTENSION );
+						FailDetails = Localization.Get( StringId.E_FileXIsNotValidOnServer, incrementalPatch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION );
 
 						return false;
 					}

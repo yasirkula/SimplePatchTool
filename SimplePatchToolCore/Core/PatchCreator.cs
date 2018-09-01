@@ -114,7 +114,7 @@ namespace SimplePatchToolCore
 		public PatchCreator AddIgnoredPath( string ignoredPath )
 		{
 			if( ignoredPath != null )
-				ignoredPath = ignoredPath.Trim();
+				ignoredPath = ignoredPath.Trim().Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
 
 			if( !string.IsNullOrEmpty( ignoredPath ) )
 			{
