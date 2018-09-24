@@ -90,6 +90,8 @@ namespace SimplePatchToolCore
 		#region XML Functions
 		public static void SerializeVersionInfoToXML( VersionInfo version, string xmlPath )
 		{
+			version.IgnoredPaths.Remove( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ); // No need to expose this ignored path in the xml
+
 			var serializer = new XmlSerializer( typeof( VersionInfo ) );
 			using( var stream = new FileStream( xmlPath, FileMode.Create ) )
 			{

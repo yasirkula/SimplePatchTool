@@ -69,7 +69,24 @@ namespace SimplePatchToolCore
 					continue;
 				}
 
-				downloadLinks[downloadLinkRaw.Substring( 0, separatorIndex ).Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar )] = downloadLinkRaw.Substring( separatorIndex + 1 );
+				downloadLinks[downloadLinkRaw.Substring( 0, separatorIndex )] = downloadLinkRaw.Substring( separatorIndex + 1 );
+			}
+
+			return UpdateDownloadLinks( downloadLinks );
+		}
+
+		public bool UpdateDownloadLinks( Dictionary<string, string> downloadLinks )
+		{
+			// Replace all AltDirectorySeparatorChar's with DirectorySeparatorChar's in the dictionary keys
+			List<string> keys = new List<string>( downloadLinks.Keys );
+			for( int i = 0; i < keys.Count; i++ )
+			{
+				string key = keys[i];
+				if( key.IndexOf( Path.AltDirectorySeparatorChar ) >= 0 )
+				{
+					downloadLinks[key.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar )] = downloadLinks[key];
+					downloadLinks.Remove( key );
+				}
 			}
 
 			int updateCount = 0;
@@ -112,7 +129,6 @@ namespace SimplePatchToolCore
 
 		public void SaveChanges()
 		{
-			VersionInfo.IgnoredPaths.Remove( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ); // No need to expose this ignored path in the xml
 			PatchUtils.SerializeVersionInfoToXML( VersionInfo, versionInfoPath );
 		}
 	}

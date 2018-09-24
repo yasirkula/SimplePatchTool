@@ -65,6 +65,15 @@ namespace SimplePatchToolConsoleApp
 			},
 			new ConsoleCommand()
 			{
+				name = "check_updates",
+				requiredArgs = new string[] { "root", "versionURL" },
+				requiredArgsDescriptions = new string[] { "Root path", "VersionInfo URL" },
+				optionalArgs = new string[] { "checkVersionOnly", "silent", "versionInfoKey" },
+				optionalArgsDescriptions = new string[] { "", "", "Path of VersionInfo verifier RSA key" },
+				function = CheckForUpdates
+			},
+			new ConsoleCommand()
+			{
 				name = "apply",
 				requiredArgs = new string[] { "root", "versionURL" },
 				requiredArgsDescriptions = new string[] { "Root path", "VersionInfo URL" },
@@ -185,6 +194,45 @@ namespace SimplePatchToolConsoleApp
 			}
 			else
 				Console.WriteLine( "\nOperation could not be started; maybe it is already executing?" );
+		}
+
+		private static void CheckForUpdates()
+		{
+			bool silent = HasArgument( "silent" );
+			string versionInfoKeyPath = GetArgument( "versionInfoKey" );
+
+			SimplePatchTool patcher = new SimplePatchTool( GetArgument( "root" ), GetArgument( "versionURL" ) ).SilentMode( silent );
+
+			if( versionInfoKeyPath != null )
+			{
+				string publicKey = File.ReadAllText( versionInfoKeyPath );
+				patcher.UseVersionInfoVerifier( ( ref string xml ) => XMLSigner.VerifyXMLContents( xml, publicKey ) );
+			}
+
+			bool hasStarted = patcher.CheckForUpdates( HasArgument( "checkVersionOnly" ) );
+			if( hasStarted )
+			{
+				while( patcher.IsRunning )
+				{
+					Thread.Sleep( 100 );
+
+					string log = patcher.FetchLog();
+					while( log != null )
+					{
+						LogToConsole( log );
+						log = patcher.FetchLog();
+					}
+				}
+
+				if( patcher.Result == PatchResult.Failed )
+					Console.WriteLine( "\nOperation failed: " + patcher.FailReason + " " + ( patcher.FailDetails ?? "" ) );
+				else if( patcher.Result == PatchResult.AlreadyUpToDate )
+					Console.WriteLine( "\nAlready up-to-date!" );
+				else
+					Console.WriteLine( "\nThere is an update!" );
+			}
+			else
+				Console.WriteLine( "\nCould not check for updates; maybe an operation is already running?" );
 		}
 
 		private static void ApplyPatch()
