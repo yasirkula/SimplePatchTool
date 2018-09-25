@@ -14,7 +14,8 @@ namespace SimplePatchToolCore
 
 		private readonly string rootPath;
 		private readonly string outputPath;
-		private readonly string repairOutputPath;
+		private readonly string repairPatchOutputPath;
+		private readonly string incrementalPatchOutputPath;
 		private readonly string incrementalPatchTempPath;
 		private readonly string projectName;
 
@@ -85,7 +86,8 @@ namespace SimplePatchToolCore
 			this.outputPath = PatchUtils.GetPathWithTrailingSeparatorChar( outputPath );
 			this.projectName = projectName;
 
-			repairOutputPath = this.outputPath + "RepairFiles" + Path.DirectorySeparatorChar;
+			repairPatchOutputPath = this.outputPath + PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar;
+			incrementalPatchOutputPath = this.outputPath + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + Path.DirectorySeparatorChar;
 			incrementalPatchTempPath = this.outputPath + "Temp" + Path.DirectorySeparatorChar;
 
 			ignoredPaths = new HashSet<string>();
@@ -287,7 +289,7 @@ namespace SimplePatchToolCore
 			if( cancel )
 				return PatchResult.Failed;
 
-			Directory.CreateDirectory( repairOutputPath );
+			Directory.CreateDirectory( repairPatchOutputPath );
 
 			Log( Localization.Get( StringId.CreatingRepairPatch ) );
 			Stopwatch timer = Stopwatch.StartNew();
@@ -309,6 +311,7 @@ namespace SimplePatchToolCore
 			if( cancel )
 				return PatchResult.Failed;
 
+			Directory.CreateDirectory( incrementalPatchOutputPath );
 			Directory.CreateDirectory( incrementalPatchTempPath );
 
 			incrementalPatch = new PatchInfo
@@ -327,11 +330,11 @@ namespace SimplePatchToolCore
 				return PatchResult.Failed;
 
 			Log( Localization.Get( StringId.CompressingPatchIntoOneFile ) );
-			string compressedPatchPath = outputPath + incrementalPatch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION;
+			string compressedPatchPath = incrementalPatchOutputPath + incrementalPatch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION;
 			ZipUtils.CompressFolderLZMA( incrementalPatchTempPath, compressedPatchPath );
 
 			Log( Localization.Get( StringId.WritingIncrementalPatchInfoToXML ) );
-			PatchUtils.SerializePatchInfoToXML( incrementalPatch, outputPath + incrementalPatch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION );
+			PatchUtils.SerializePatchInfoToXML( incrementalPatch, incrementalPatchOutputPath + incrementalPatch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION );
 
 			patch.Patches.Add( new IncrementalPatch( previousVersion, version, new FileInfo( compressedPatchPath ) ) );
 
@@ -368,7 +371,7 @@ namespace SimplePatchToolCore
 				if( !ignoredPathsRegex.PathMatchesPattern( directoryRelativePath ) )
 				{
 					if( generateRepairPatch )
-						Directory.CreateDirectory( repairOutputPath + directoryRelativePath );
+						Directory.CreateDirectory( repairPatchOutputPath + directoryRelativePath );
 
 					AddFilesToPatchRecursively( subDirectories[i], directoryRelativePath );
 				}
@@ -386,7 +389,7 @@ namespace SimplePatchToolCore
 
 				VersionItem patchItem = patch.Files[i];
 				string fromAbsolutePath = rootPath + patchItem.Path;
-				string toAbsolutePath = repairOutputPath + patchItem.Path + PatchParameters.COMPRESSED_FILE_EXTENSION;
+				string toAbsolutePath = repairPatchOutputPath + patchItem.Path + PatchParameters.COMPRESSED_FILE_EXTENSION;
 
 				Log( Localization.Get( StringId.CompressingXToY, fromAbsolutePath, toAbsolutePath ) );
 				timer.Reset();

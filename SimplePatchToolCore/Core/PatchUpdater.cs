@@ -95,8 +95,11 @@ namespace SimplePatchToolCore
 				VersionItem item = VersionInfo.Files[i];
 
 				string downloadLink;
-				if( downloadLinks.TryGetValue( item.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar ), out downloadLink ) ||
-					downloadLinks.TryGetValue( item.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) )
+				string relativePath = item.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
+				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
+					downloadLinks.TryGetValue( relativePath + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) ||
+					downloadLinks.TryGetValue( PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) ||
+					downloadLinks.TryGetValue( PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) )
 				{
 					item.DownloadURL = downloadLink;
 					updateCount++;
@@ -108,13 +111,17 @@ namespace SimplePatchToolCore
 				IncrementalPatch patch = VersionInfo.Patches[i];
 
 				string downloadLink;
-				if( downloadLinks.TryGetValue( patch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION, out downloadLink ) )
+				string relativePath = patch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION;
+				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
+					downloadLinks.TryGetValue( PatchParameters.INCREMENTAL_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) )
 				{
 					patch.DownloadURL = downloadLink;
 					updateCount++;
 				}
 
-				if( downloadLinks.TryGetValue( patch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION, out downloadLink ) )
+				relativePath = patch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION;
+				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
+					downloadLinks.TryGetValue( PatchParameters.INCREMENTAL_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) )
 				{
 					patch.InfoURL = downloadLink;
 					updateCount++;

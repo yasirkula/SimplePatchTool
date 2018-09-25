@@ -10,6 +10,9 @@
 		public const string VERSION_INFO_FILENAME = "VersionInfo.info";
 		public const string VERSION_HOLDER_FILENAME_POSTFIX = "_vers.sptv";
 
+		public const string REPAIR_PATCH_DIRECTORY = "RepairPatch";
+		public const string INCREMENTAL_PATCH_DIRECTORY = "IncrementalPatch";
+
 		public const string LOG_FILE_NAME = "logs.dat";
 		public const long LOG_FILE_MAX_SIZE = 4 * 1024 * 1024L; // 4 MB
 

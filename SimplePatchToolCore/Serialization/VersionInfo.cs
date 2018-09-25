@@ -52,7 +52,7 @@ namespace SimplePatchToolCore
 				return item.DownloadURL;
 
 			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
-				return BaseDownloadURL + item.Path.Replace( '\\', '/' ) + PatchParameters.COMPRESSED_FILE_EXTENSION;
+				return BaseDownloadURL + PatchParameters.REPAIR_PATCH_DIRECTORY + '/' + item.Path.Replace( '\\', '/' ) + PatchParameters.COMPRESSED_FILE_EXTENSION;
 
 			return null;
 		}
@@ -63,7 +63,7 @@ namespace SimplePatchToolCore
 				return patch.DownloadURL;
 
 			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
-				return BaseDownloadURL + patch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION;
+				return BaseDownloadURL + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + '/' + patch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION;
 
 			return null;
 		}
@@ -74,7 +74,7 @@ namespace SimplePatchToolCore
 				return patch.InfoURL;
 
 			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
-				return BaseDownloadURL + patch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION;
+				return BaseDownloadURL + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + '/' + patch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION;
 
 			return null;
 		}
