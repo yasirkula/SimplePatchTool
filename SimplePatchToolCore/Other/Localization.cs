@@ -7,11 +7,13 @@ namespace SimplePatchToolCore
 	{
 		AllFilesAreDownloadedInXSeconds,
 		AlreadyUpToDateXthFile,
+		AppIsUpToDate,
 		CalculatingDiffOfX,
 		CalculatingFilesToDownload,
 		CalculatingNewOrChangedFiles,
 		CalculatingObsoleteFiles,
 		Cancelled,
+		CheckingForUpdates,
 		CheckingIfFilesAreUpToDate,
 		CompressingFilesToDestination,
 		CompressingPatchIntoOneFile,
@@ -64,9 +66,11 @@ namespace SimplePatchToolCore
 		PatchAppliedInXSeconds,
 		PatchCompletedInXSeconds,
 		PatchCreatedInXSeconds,
+		ReadyToSelfPatch,
 		RenamingXFiles,
 		RetrievingVersionInfo,
 		SomeFilesAreStillNotUpToDate,
+		UpdateAvailable,
 		UpdatingX,
 		UpdatingXFiles,
 		UpdatingXFilesAtY,
@@ -102,7 +106,7 @@ namespace SimplePatchToolCore
 			if( Strings.TryGetValue( key, out result ) )
 				return result;
 
-			return key.ToString();
+			return string.Concat( "__", key.ToString(), "__" );
 		}
 
 		public static string Get( StringId key, object arg0 )
@@ -111,7 +115,7 @@ namespace SimplePatchToolCore
 			if( Strings.TryGetValue( key, out result ) )
 				return string.Format( result, arg0 );
 
-			return key.ToString();
+			return string.Concat( "__", key.ToString(), "__" );
 		}
 
 		public static string Get( StringId key, object arg0, object arg1 )
@@ -120,7 +124,7 @@ namespace SimplePatchToolCore
 			if( Strings.TryGetValue( key, out result ) )
 				return string.Format( result, arg0, arg1 );
 
-			return key.ToString();
+			return string.Concat( "__", key.ToString(), "__" );
 		}
 
 		public static string Get( StringId key, object arg0, object arg1, object arg2 )
@@ -129,7 +133,7 @@ namespace SimplePatchToolCore
 			if( Strings.TryGetValue( key, out result ) )
 				return string.Format( result, arg0, arg1, arg2 );
 
-			return key.ToString();
+			return string.Concat( "__", key.ToString(), "__" );
 		}
 
 		public static string Get( StringId key, params object[] args )
@@ -138,7 +142,7 @@ namespace SimplePatchToolCore
 			if( Strings.TryGetValue( key, out result ) )
 				return string.Format( result, args );
 
-			return key.ToString();
+			return string.Concat( "__", key.ToString(), "__" );
 		}
 
 		public static bool SetCulture( CultureInfo culture )
@@ -191,11 +195,13 @@ namespace SimplePatchToolCore
 
 			Strings[StringId.AllFilesAreDownloadedInXSeconds] = "All files are successfully downloaded in {0} seconds";
 			Strings[StringId.AlreadyUpToDateXthFile] = "{0}/{1} Already up-to-date: {2}";
+			Strings[StringId.AppIsUpToDate] = "...App is up-to-date...";
 			Strings[StringId.CalculatingDiffOfX] = "Calculating diff of {0}";
 			Strings[StringId.CalculatingFilesToDownload] = "...Calculating files to download...";
 			Strings[StringId.CalculatingNewOrChangedFiles] = "...Calculating new or changed files...";
 			Strings[StringId.CalculatingObsoleteFiles] = "...Calculating obsolete files...";
 			Strings[StringId.Cancelled] = "...Operation cancelled...";
+			Strings[StringId.CheckingForUpdates] = "...Checking for updates...";
 			Strings[StringId.CheckingIfFilesAreUpToDate] = "...Checking if files are up-to-date...";
 			Strings[StringId.CompressingFilesToDestination] = "...Compressing files in build to destination...";
 			Strings[StringId.CompressingPatchIntoOneFile] = "...Compressing incremental patch into one file...";
@@ -248,9 +254,11 @@ namespace SimplePatchToolCore
 			Strings[StringId.PatchAppliedInXSeconds] = "...Patch applied in {0} seconds...";
 			Strings[StringId.PatchCompletedInXSeconds] = "...Patch successfully completed in {0} seconds...";
 			Strings[StringId.PatchCreatedInXSeconds] = "...Patch created in {0} seconds...";
-			Strings[StringId.RenamingXFiles] = "...Renaming {0} files/folders";
+			Strings[StringId.ReadyToSelfPatch] = "...Waiting for the self patcher to complete the update...";
+			Strings[StringId.RenamingXFiles] = "...Renaming {0} files/folders...";
 			Strings[StringId.RetrievingVersionInfo] = "...Retrieving version info...";
 			Strings[StringId.SomeFilesAreStillNotUpToDate] = "...Some files are still not up-to-date, trying repair...";
+			Strings[StringId.UpdateAvailable] = "...New version available...";
 			Strings[StringId.UpdatingX] = "Updating {0}";
 			Strings[StringId.UpdatingXFiles] = "...Updating {0} file(s)...";
 			Strings[StringId.UpdatingXFilesAtY] = "...Updating {0} file(s) at {1}...";
@@ -268,11 +276,13 @@ namespace SimplePatchToolCore
 
 			Strings[StringId.AllFilesAreDownloadedInXSeconds] = "Tüm dosyalar {0} saniyede başarılı bir şekilde indirildi";
 			Strings[StringId.AlreadyUpToDateXthFile] = "{0}/{1} Zaten güncel: {2}";
+			Strings[StringId.AppIsUpToDate] = "...Uygulama güncel...";
 			Strings[StringId.CalculatingDiffOfX] = "{0} dosyasının diff'i hesaplanıyor";
 			Strings[StringId.CalculatingFilesToDownload] = "...İndirilmesi gereken dosyalar hesaplanıyor...";
 			Strings[StringId.CalculatingNewOrChangedFiles] = "...Yeni veya değişmiş dosyalar hesaplanıyor...";
 			Strings[StringId.CalculatingObsoleteFiles] = "...Artık kullanılmayan dosyalar hesaplanıyor...";
 			Strings[StringId.Cancelled] = "...İşlem iptal edildi...";
+			Strings[StringId.CheckingForUpdates] = "...Güncellemeler kontrol ediliyor...";
 			Strings[StringId.CheckingIfFilesAreUpToDate] = "...Dosyaların güncel olup olmadığı kontrol ediliyor...";
 			Strings[StringId.CompressingFilesToDestination] = "...Dosyalar hedef klasörde sıkıştırılıyor...";
 			Strings[StringId.CompressingPatchIntoOneFile] = "...Patch dosyası sıkıştırılıyor...";
@@ -325,9 +335,11 @@ namespace SimplePatchToolCore
 			Strings[StringId.PatchAppliedInXSeconds] = "...Patch {0} saniyede tamamlandı...";
 			Strings[StringId.PatchCompletedInXSeconds] = "...Patch {0} saniyede başarıyla tamamlandı...";
 			Strings[StringId.PatchCreatedInXSeconds] = "...Patch {0} saniyede oluşturuldu...";
-			Strings[StringId.RenamingXFiles] = "...{0} dosya veya klasörün ismi güncelleniyor";
+			Strings[StringId.ReadyToSelfPatch] = "...Uygulamanın kendini güncellemesi bekleniyor...";
+			Strings[StringId.RenamingXFiles] = "...{0} dosya veya klasörün ismi güncelleniyor...";
 			Strings[StringId.RetrievingVersionInfo] = "...Versiyon bilgileri alınıyor...";
 			Strings[StringId.SomeFilesAreStillNotUpToDate] = "...Bazı dosyalar hâlâ güncel değil, onarma işlemi deneniyor...";
+			Strings[StringId.UpdateAvailable] = "...Yeni bir güncelleme var...";
 			Strings[StringId.UpdatingX] = "{0} güncelleniyor";
 			Strings[StringId.UpdatingXFiles] = "...{0} dosya güncelleniyor...";
 			Strings[StringId.UpdatingXFilesAtY] = "...{1} konumundaki {0} dosya güncelleniyor...";

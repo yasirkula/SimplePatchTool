@@ -301,6 +301,13 @@ namespace SimplePatchToolCore
 				FailDetails = e.ToString();
 			}
 
+			if( Result == PatchResult.AlreadyUpToDate )
+				comms.Log( Localization.Get( StringId.AppIsUpToDate ) );
+			else if( Result == PatchResult.Success )
+				comms.Log( Localization.Get( StringId.UpdateAvailable ) );
+			else
+				comms.Log( FailDetails );
+
 			comms.DisposeFileLogger();
 			IsRunning = false;
 		}
@@ -318,6 +325,13 @@ namespace SimplePatchToolCore
 				FailDetails = e.ToString();
 			}
 
+			if( Result == PatchResult.AlreadyUpToDate )
+				comms.Log( Localization.Get( StringId.AppIsUpToDate ) );
+			else if( Result == PatchResult.Success )
+				comms.Log( Operation == PatchOperation.Patching ? Localization.Get( StringId.AppIsUpToDate ) : Localization.Get( StringId.ReadyToSelfPatch ) );
+			else
+				comms.Log( FailDetails );
+
 			comms.DisposeFileLogger();
 			IsRunning = false;
 		}
@@ -325,6 +339,8 @@ namespace SimplePatchToolCore
 		private PatchResult CheckForUpdatesInternal( bool checkVersionOnly )
 		{
 			PatchStage = PatchStage.CheckingUpdates;
+
+			comms.Log( Localization.Get( StringId.CheckingForUpdates ) );
 
 			if( !FetchVersionInfo() )
 				return PatchResult.Failed;

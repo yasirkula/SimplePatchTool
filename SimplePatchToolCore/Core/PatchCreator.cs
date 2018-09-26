@@ -146,7 +146,8 @@ namespace SimplePatchToolCore
 
 		/// <exception cref = "DirectoryNotFoundException">Previous version's path does not exist</exception>
 		/// <exception cref = "ArgumentException">previousVersionRoot is empty</exception>
-		/// <exception cref = "FormatException">Previous version's version code is not valid or does not exist</exception>
+		/// <exception cref = "FileNotFoundException">Previous version's version code does not exist</exception>
+		/// <exception cref = "FormatException">Previous version's version code is not valid</exception>
 		/// <exception cref = "InvalidOperationException">Previous version's version code is greater than or equal to current version's version code</exception>
 		public PatchCreator CreateIncrementalPatch( bool value, string previousVersionRoot = null )
 		{
@@ -164,7 +165,9 @@ namespace SimplePatchToolCore
 					throw new DirectoryNotFoundException( Localization.Get( StringId.E_XDoesNotExist, previousVersionRoot ) );
 
 				previousVersion = PatchUtils.GetVersion( previousVersionRoot, projectName );
-				if( !previousVersion.IsValid )
+				if( previousVersion == null )
+					throw new FileNotFoundException( Localization.Get( StringId.E_XDoesNotExist, projectName + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ) );
+				else if( !previousVersion.IsValid )
 					throw new FormatException( Localization.Get( StringId.E_VersionCodeXIsInvalid, previousVersion ) );
 
 				if( previousVersion >= version )
