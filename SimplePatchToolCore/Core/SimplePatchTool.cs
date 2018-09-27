@@ -959,7 +959,8 @@ namespace SimplePatchToolCore
 			for( int i = 0; i < subDirectories.Length; i++ )
 			{
 				string directoryRelativePath = relativePath + subDirectories[i].Name + Path.DirectorySeparatorChar;
-				FindFilesToDelete( rootPath, filesToDelete, directoryRelativePath );
+				if( !comms.VersionInfo.IgnoredPathsRegex.PathMatchesPattern( directoryRelativePath ) )
+					FindFilesToDelete( rootPath, filesToDelete, directoryRelativePath );
 			}
 		}
 	}
