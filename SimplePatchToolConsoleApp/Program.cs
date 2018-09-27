@@ -77,7 +77,7 @@ namespace SimplePatchToolConsoleApp
 				name = "apply",
 				requiredArgs = new string[] { "root", "versionURL" },
 				requiredArgsDescriptions = new string[] { "Root path", "VersionInfo URL" },
-				optionalArgs = new string[] { "dontUseIncrementalPatch", "dontUseRepair", "verifyFiles", "silent", "versionInfoKey", "patchInfoKey" },
+				optionalArgs = new string[] { "dontUseIncrementalPatch", "dontUseRepairPatch", "verifyFiles", "silent", "versionInfoKey", "patchInfoKey" },
 				optionalArgsDescriptions = new string[] { "", "", "", "", "Path of VersionInfo verifier RSA key", "Path of PatchInfo verifier RSA key" },
 				function = ApplyPatch
 			},
@@ -242,7 +242,7 @@ namespace SimplePatchToolConsoleApp
 			string patchInfoKeyPath = GetArgument( "patchInfoKey" );
 
 			SimplePatchTool patcher = new SimplePatchTool( GetArgument( "root" ), GetArgument( "versionURL" ) ).UseIncrementalPatch( !HasArgument( "dontUseIncrementalPatch" ) ).
-					UseRepair( !HasArgument( "dontUseRepair" ) ).VerifyFilesOnServer( HasArgument( "verifyFiles" ) ).LogProgress( !silent ).SilentMode( silent );
+					UseRepairPatch( !HasArgument( "dontUseRepairPatch" ) ).VerifyFilesOnServer( HasArgument( "verifyFiles" ) ).LogProgress( !silent ).SilentMode( silent );
 
 			if( versionInfoKeyPath != null )
 			{

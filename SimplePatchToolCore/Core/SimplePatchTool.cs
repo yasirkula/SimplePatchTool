@@ -125,15 +125,22 @@ namespace SimplePatchToolCore
 			Result = PatchResult.Failed;
 		}
 
-		public SimplePatchTool UseIncrementalPatch( bool canIncrementalPatch )
-		{
-			this.canIncrementalPatch = canIncrementalPatch;
-			return this;
-		}
-
+		[Obsolete( "Use UseRepairPatch instead" )]
 		public SimplePatchTool UseRepair( bool canRepair )
 		{
 			this.canRepair = canRepair;
+			return this;
+		}
+
+		public SimplePatchTool UseRepairPatch( bool canRepair )
+		{
+			this.canRepair = canRepair;
+			return this;
+		}
+
+		public SimplePatchTool UseIncrementalPatch( bool canIncrementalPatch )
+		{
+			this.canIncrementalPatch = canIncrementalPatch;
 			return this;
 		}
 
