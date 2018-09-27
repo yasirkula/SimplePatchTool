@@ -313,7 +313,7 @@ namespace SimplePatchToolCore
 			else if( Result == PatchResult.Success )
 				comms.Log( Localization.Get( StringId.UpdateAvailable ) );
 			else
-				comms.Log( FailDetails );
+				comms.Log( comms.FailDetails );
 
 			comms.DisposeFileLogger();
 			IsRunning = false;
@@ -337,7 +337,7 @@ namespace SimplePatchToolCore
 			else if( Result == PatchResult.Success )
 				comms.Log( Operation == PatchOperation.Patching ? Localization.Get( StringId.AppIsUpToDate ) : Localization.Get( StringId.ReadyToSelfPatch ) );
 			else
-				comms.Log( FailDetails );
+				comms.Log( comms.FailDetails );
 
 			comms.DisposeFileLogger();
 			IsRunning = false;
