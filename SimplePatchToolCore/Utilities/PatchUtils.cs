@@ -16,6 +16,27 @@ namespace SimplePatchToolCore
 		private const double BYTES_TO_MB_MULTIPLIER = 1.0 / ( 1024 * 1024 );
 		#endregion
 
+		#region Properties
+		private static char m_altDirectorySeparatorChar = '\0';
+		public static char AltDirectorySeparatorChar
+		{
+			get
+			{
+				if( m_altDirectorySeparatorChar == '\0' )
+				{
+					if( Path.DirectorySeparatorChar != Path.AltDirectorySeparatorChar )
+						m_altDirectorySeparatorChar = Path.AltDirectorySeparatorChar;
+					else if( Path.DirectorySeparatorChar == '\\' )
+						m_altDirectorySeparatorChar = '/';
+					else
+						m_altDirectorySeparatorChar = '\\';
+				}
+
+				return m_altDirectorySeparatorChar;
+			}
+		}
+		#endregion
+
 		#region Extension Functions
 		public static string ElapsedSeconds( this Stopwatch timer )
 		{
@@ -114,13 +135,13 @@ namespace SimplePatchToolCore
 					for( int i = 0; i < result.Files.Count; i++ )
 					{
 						VersionItem item = result.Files[i];
-						item.Path = item.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
+						item.Path = item.Path.Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
 					}
 
 					result.IgnoredPaths.Add( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX );
 					result.IgnoredPathsRegex = new Regex[result.IgnoredPaths.Count];
 					for( int i = 0; i < result.IgnoredPaths.Count; i++ )
-						result.IgnoredPathsRegex[i] = WildcardToRegex( result.IgnoredPaths[i].Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) );
+						result.IgnoredPathsRegex[i] = WildcardToRegex( result.IgnoredPaths[i].Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) );
 				}
 
 				return result;
@@ -148,14 +169,14 @@ namespace SimplePatchToolCore
 					for( int i = 0; i < result.RenamedFiles.Count; i++ )
 					{
 						PatchRenamedItem renamedItem = result.RenamedFiles[i];
-						renamedItem.BeforePath = renamedItem.BeforePath.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
-						renamedItem.AfterPath = renamedItem.AfterPath.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
+						renamedItem.BeforePath = renamedItem.BeforePath.Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
+						renamedItem.AfterPath = renamedItem.AfterPath.Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
 					}
 
 					for( int i = 0; i < result.Files.Count; i++ )
 					{
 						PatchItem patchItem = result.Files[i];
-						patchItem.Path = patchItem.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
+						patchItem.Path = patchItem.Path.Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
 					}
 				}
 

@@ -82,9 +82,9 @@ namespace SimplePatchToolCore
 			for( int i = 0; i < keys.Count; i++ )
 			{
 				string key = keys[i];
-				if( key.IndexOf( Path.AltDirectorySeparatorChar ) >= 0 )
+				if( key.IndexOf( PatchUtils.AltDirectorySeparatorChar ) >= 0 )
 				{
-					downloadLinks[key.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar )] = downloadLinks[key];
+					downloadLinks[key.Replace( PatchUtils.AltDirectorySeparatorChar, Path.DirectorySeparatorChar )] = downloadLinks[key];
 					downloadLinks.Remove( key );
 				}
 			}
@@ -95,7 +95,7 @@ namespace SimplePatchToolCore
 				VersionItem item = VersionInfo.Files[i];
 
 				string downloadLink;
-				string relativePath = item.Path.Replace( Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
+				string relativePath = item.Path.Replace( PatchUtils.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
 				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
 					downloadLinks.TryGetValue( relativePath + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) ||
 					downloadLinks.TryGetValue( PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) ||
