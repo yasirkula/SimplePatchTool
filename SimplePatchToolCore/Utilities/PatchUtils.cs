@@ -5,6 +5,7 @@ using System.IO;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Xml.Serialization;
 
 namespace SimplePatchToolCore
@@ -130,6 +131,10 @@ namespace SimplePatchToolCore
 				{
 					result.Patches.RemoveAll( ( patch ) => !patch.FromVersion.IsValid || !patch.ToVersion.IsValid || patch.ToVersion <= patch.FromVersion );
 					result.Patches.Sort( IncrementalPatchComparison );
+
+					// BaseDownloadURL uses '/' as path separator char, be consistent
+					if( result.BaseDownloadURL.StartsWith( "file://" ) )
+						result.BaseDownloadURL = "file://" + result.BaseDownloadURL.Substring( 7 ).Replace( '\\', '/' );
 
 					// Always use Path.DirectorySeparatorChar
 					for( int i = 0; i < result.Files.Count; i++ )
@@ -278,7 +283,7 @@ namespace SimplePatchToolCore
 			toAbsolutePath = GetPathWithTrailingSeparatorChar( toAbsolutePath );
 
 			MergeDirectories( new DirectoryInfo( fromAbsolutePath ), new DirectoryInfo( toAbsolutePath ), toAbsolutePath );
-			Directory.Delete( fromAbsolutePath, true );
+			DeleteDirectory( fromAbsolutePath );
 		}
 
 		private static void MergeDirectories( DirectoryInfo from, DirectoryInfo to, string targetAbsolutePath )
@@ -299,6 +304,35 @@ namespace SimplePatchToolCore
 					MergeDirectories( directoryInfo, new DirectoryInfo( directoryAbsolutePath ), directoryAbsolutePath );
 				else
 					directoryInfo.MoveTo( directoryAbsolutePath );
+			}
+		}
+
+		public static void DeleteDirectory( string path )
+		{
+			if( Directory.Exists( path ) )
+			{
+				// Deleting a directory immediately after deleting a file inside it can sometimes
+				// throw IOException; in such cases, waiting for a short time should resolve the issue
+				for( int i = 4; i >= 0; i-- )
+				{
+					if( i > 0 )
+					{
+						try
+						{
+							Directory.Delete( path, true );
+							break;
+						}
+						catch( IOException )
+						{
+							Thread.Sleep( 500 );
+						}
+					}
+					else
+						Directory.Delete( path, true );
+				}
+
+				while( Directory.Exists( path ) )
+					Thread.Sleep( 100 );
 			}
 		}
 

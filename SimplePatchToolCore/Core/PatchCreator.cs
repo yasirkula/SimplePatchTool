@@ -252,12 +252,7 @@ namespace SimplePatchToolCore
 				Version = version
 			};
 
-			if( Directory.Exists( outputPath ) )
-				Directory.Delete( outputPath, true );
-
-			while( Directory.Exists( outputPath ) )
-				Thread.Sleep( 100 );
-
+			PatchUtils.DeleteDirectory( outputPath );
 			Directory.CreateDirectory( outputPath );
 
 			if( cancel )
@@ -341,7 +336,7 @@ namespace SimplePatchToolCore
 
 			patch.Patches.Add( new IncrementalPatch( previousVersion, version, new FileInfo( compressedPatchPath ) ) );
 
-			Directory.Delete( incrementalPatchTempPath, true );
+			PatchUtils.DeleteDirectory( incrementalPatchTempPath );
 
 			Log( Localization.Get( StringId.IncrementalPatchCreatedInXSeconds, timer.ElapsedSeconds() ) );
 

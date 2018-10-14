@@ -668,8 +668,7 @@ namespace SimplePatchToolCore
 
 				comms.DisposeFileLogger(); // Can't delete CachePath while a StreamWriter is still open inside
 
-				if( Directory.Exists( comms.CachePath ) )
-					Directory.Delete( comms.CachePath, true );
+				PatchUtils.DeleteDirectory( comms.CachePath );
 			}
 			else
 			{

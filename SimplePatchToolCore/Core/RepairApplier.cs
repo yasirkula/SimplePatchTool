@@ -81,8 +81,7 @@ namespace SimplePatchToolCore
 
 			comms.Log( Localization.Get( StringId.AllFilesAreDownloadedInXSeconds, downloadTimer.ElapsedSeconds() ) );
 
-			if( Directory.Exists( comms.DownloadsPath ) )
-				Directory.Delete( comms.DownloadsPath, true );
+			PatchUtils.DeleteDirectory( comms.DownloadsPath );
 
 			comms.Log( Localization.Get( StringId.PatchAppliedInXSeconds, timer.ElapsedSeconds() ) );
 

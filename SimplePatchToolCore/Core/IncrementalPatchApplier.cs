@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Collections.Generic;
-using System.Threading;
 
 namespace SimplePatchToolCore
 {
@@ -33,12 +32,7 @@ namespace SimplePatchToolCore
 
 			if( patchInfo.Files.Count > 0 )
 			{
-				if( Directory.Exists( patchDecompressPath ) )
-					Directory.Delete( patchDecompressPath, true );
-
-				while( Directory.Exists( patchDecompressPath ) )
-					Thread.Sleep( 100 );
-
+				PatchUtils.DeleteDirectory( patchDecompressPath );
 				Directory.CreateDirectory( patchDecompressPath );
 			}
 
@@ -130,7 +124,7 @@ namespace SimplePatchToolCore
 
 			if( patchInfo.Files.Count > 0 )
 			{
-				Directory.Delete( patchDecompressPath, true );
+				PatchUtils.DeleteDirectory( patchDecompressPath );
 				File.Delete( patchDownloadPath );
 			}
 

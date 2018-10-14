@@ -7,8 +7,8 @@
     <ProjectGuid>{EA4A7719-FB38-4573-970A-40F0A72E2FE3}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SimplePatchToolSelfPatcher</RootNamespace>
-    <AssemblyName>SimplePatchToolSelfPatcher</AssemblyName>
+    <RootNamespace>SelfPatcherConsoleApp</RootNamespace>
+    <AssemblyName>SelfPatcher</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -64,6 +64,12 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SelfPatcherCore\SelfPatcherCore.csproj">
+      <Project>{62920cfb-c3f2-4541-83f6-0ccf65994858}</Project>
+      <Name>SelfPatcherCore</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
