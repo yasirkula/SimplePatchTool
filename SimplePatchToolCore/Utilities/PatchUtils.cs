@@ -269,41 +269,43 @@ namespace SimplePatchToolCore
 
 		public static void MoveDirectory( string fromAbsolutePath, string toAbsolutePath )
 		{
-			if( Directory.Exists( toAbsolutePath ) )
-				MergeDirectories( fromAbsolutePath, toAbsolutePath );
-			else
+			bool haveSameRoot = Directory.GetDirectoryRoot( fromAbsolutePath ).Equals( Directory.GetDirectoryRoot( toAbsolutePath ), StringComparison.OrdinalIgnoreCase );
+
+			// Moving a directory between two roots/drives via Directory.Move throws an IOException
+			if( haveSameRoot && !Directory.Exists( toAbsolutePath ) )
 			{
 				Directory.CreateDirectory( Directory.GetParent( toAbsolutePath ).FullName );
 				Directory.Move( fromAbsolutePath, toAbsolutePath );
 			}
+			else
+			{
+				Directory.CreateDirectory( toAbsolutePath );
+				MoveDirectoryMerge( new DirectoryInfo( fromAbsolutePath ), GetPathWithTrailingSeparatorChar( toAbsolutePath ), haveSameRoot );
+				DeleteDirectory( fromAbsolutePath );
+			}
 		}
 
-		public static void MergeDirectories( string fromAbsolutePath, string toAbsolutePath )
+		private static void MoveDirectoryMerge( DirectoryInfo fromDir, string toAbsolutePath, bool haveSameRoot )
 		{
-			toAbsolutePath = GetPathWithTrailingSeparatorChar( toAbsolutePath );
-
-			MergeDirectories( new DirectoryInfo( fromAbsolutePath ), new DirectoryInfo( toAbsolutePath ), toAbsolutePath );
-			DeleteDirectory( fromAbsolutePath );
-		}
-
-		private static void MergeDirectories( DirectoryInfo from, DirectoryInfo to, string targetAbsolutePath )
-		{
-			FileInfo[] files = from.GetFiles();
+			FileInfo[] files = fromDir.GetFiles();
 			for( int i = 0; i < files.Length; i++ )
 			{
 				FileInfo fileInfo = files[i];
-				fileInfo.CopyTo( targetAbsolutePath + fileInfo.Name, true );
+				fileInfo.CopyTo( toAbsolutePath + fileInfo.Name, true );
 			}
 
-			DirectoryInfo[] subDirectories = from.GetDirectories();
+			DirectoryInfo[] subDirectories = fromDir.GetDirectories();
 			for( int i = 0; i < subDirectories.Length; i++ )
 			{
 				DirectoryInfo directoryInfo = subDirectories[i];
-				string directoryAbsolutePath = targetAbsolutePath + directoryInfo.Name + Path.DirectorySeparatorChar;
-				if( Directory.Exists( directoryAbsolutePath ) )
-					MergeDirectories( directoryInfo, new DirectoryInfo( directoryAbsolutePath ), directoryAbsolutePath );
-				else
+				string directoryAbsolutePath = toAbsolutePath + directoryInfo.Name + Path.DirectorySeparatorChar;
+				if( haveSameRoot && !Directory.Exists( directoryAbsolutePath ) )
 					directoryInfo.MoveTo( directoryAbsolutePath );
+				else
+				{
+					Directory.CreateDirectory( directoryAbsolutePath );
+					MoveDirectoryMerge( directoryInfo, directoryAbsolutePath, haveSameRoot );
+				}
 			}
 		}
 

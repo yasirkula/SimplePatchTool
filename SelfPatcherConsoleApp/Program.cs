@@ -14,6 +14,11 @@ namespace SelfPatcherConsoleApp
 				Console.WriteLine( message );
 			}
 
+			public void OnProgressChanged( int currentInstruction, int numberOfInstructions )
+			{
+				Console.WriteLine( (int) ( currentInstruction * 100f / numberOfInstructions ) + "%" );
+			}
+
 			public void OnFail( string message )
 			{
 				Console.WriteLine( message );

@@ -70,6 +70,7 @@ namespace SelfPatcherCore
 
 				listener.OnLogAppeared( string.Concat( "Updating from v", instructions.Substring( 0, tokenEnd ), ", please don't close this window!" ) );
 
+				int numberOfInstructions = 0;
 				while( tokenStart < instructions.Length )
 				{
 					tokenStart = tokenEnd + OP_SEPARATOR.Length;
@@ -84,38 +85,63 @@ namespace SelfPatcherCore
 					if( token.Length == 0 )
 						continue;
 
-					if( token == DELETE_OP )
-						currentOp = Op.Delete;
-					else if( token == MOVE_OP )
-					{
-						currentOp = Op.Move;
-						moveFrom = null;
-					}
-					else
-					{
-						currentInstruction++;
+					if( token != DELETE_OP && token != MOVE_OP )
+						numberOfInstructions++;
+				}
 
-						if( currentOp == Op.Delete )
+				if( numberOfInstructions > 0 )
+				{
+					tokenStart = 0;
+					tokenEnd = instructions.IndexOf( OP_SEPARATOR );
+					while( tokenStart < instructions.Length )
+					{
+						listener.OnProgressChanged( currentInstruction, numberOfInstructions );
+
+						tokenStart = tokenEnd + OP_SEPARATOR.Length;
+						if( tokenStart >= instructions.Length )
+							break;
+
+						tokenEnd = instructions.IndexOf( OP_SEPARATOR, tokenStart );
+						if( tokenEnd < 0 )
+							break;
+
+						string token = instructions.Substring( tokenStart, tokenEnd - tokenStart );
+						if( token.Length == 0 )
+							continue;
+
+						if( token == DELETE_OP )
+							currentOp = Op.Delete;
+						else if( token == MOVE_OP )
 						{
-							if( currentInstruction <= completedInstructions )
-								continue;
-
-							File.WriteAllText( completedInstructionsPath, ( currentInstruction - 1 ).ToString() );
-							Delete( token );
+							currentOp = Op.Move;
+							moveFrom = null;
 						}
-						else if( currentOp == Op.Move )
+						else
 						{
-							if( moveFrom == null )
-								moveFrom = token;
-							else
+							currentInstruction++;
+
+							if( currentOp == Op.Delete )
 							{
 								if( currentInstruction <= completedInstructions )
 									continue;
 
 								File.WriteAllText( completedInstructionsPath, ( currentInstruction - 1 ).ToString() );
+								Delete( token );
+							}
+							else if( currentOp == Op.Move )
+							{
+								if( moveFrom == null )
+									moveFrom = token;
+								else
+								{
+									if( currentInstruction <= completedInstructions )
+										continue;
 
-								MoveFiles( moveFrom, token );
-								moveFrom = null;
+									File.WriteAllText( completedInstructionsPath, ( currentInstruction - 1 ).ToString() );
+
+									MoveFiles( moveFrom, token );
+									moveFrom = null;
+								}
 							}
 						}
 					}
@@ -171,15 +197,7 @@ namespace SelfPatcherCore
 				}
 			}
 			else if( Directory.Exists( from ) )
-			{
-				if( Directory.Exists( to ) )
-					MergeDirectories( from, to );
-				else
-				{
-					Directory.CreateDirectory( Directory.GetParent( to ).FullName );
-					Directory.Move( from, to );
-				}
-			}
+				MoveDirectory( from, to );
 		}
 		#endregion
 
@@ -202,33 +220,49 @@ namespace SelfPatcherCore
 			}
 		}
 
-		private void MergeDirectories( string fromAbsolutePath, string toAbsolutePath )
+		private void MoveDirectory( string fromAbsolutePath, string toAbsolutePath )
 		{
-			toAbsolutePath = GetPathWithTrailingSeparatorChar( toAbsolutePath );
+			bool haveSameRoot = Directory.GetDirectoryRoot( fromAbsolutePath ).Equals( Directory.GetDirectoryRoot( toAbsolutePath ), StringComparison.OrdinalIgnoreCase );
 
-			MergeDirectories( new DirectoryInfo( fromAbsolutePath ), new DirectoryInfo( toAbsolutePath ), toAbsolutePath );
-			DeleteDirectory( fromAbsolutePath );
-		}
-
-		private void MergeDirectories( DirectoryInfo from, DirectoryInfo to, string targetAbsolutePath )
-		{
-			FileInfo[] files = from.GetFiles();
-			for( int i = 0; i < files.Length; i++ )
-				CopyFile( files[i].FullName, targetAbsolutePath + files[i].Name );
-
-			DirectoryInfo[] subDirectories = from.GetDirectories();
-			for( int i = 0; i < subDirectories.Length; i++ )
+			// Moving a directory between two roots/drives via Directory.Move throws an IOException
+			if( haveSameRoot && !Directory.Exists( toAbsolutePath ) )
 			{
-				DirectoryInfo directoryInfo = subDirectories[i];
-				string directoryAbsolutePath = targetAbsolutePath + directoryInfo.Name + Path.DirectorySeparatorChar;
-				if( Directory.Exists( directoryAbsolutePath ) )
-					MergeDirectories( directoryInfo, new DirectoryInfo( directoryAbsolutePath ), directoryAbsolutePath );
-				else
-					directoryInfo.MoveTo( directoryAbsolutePath );
+				Directory.CreateDirectory( Directory.GetParent( toAbsolutePath ).FullName );
+				Directory.Move( fromAbsolutePath, toAbsolutePath );
+			}
+			else
+			{
+				Directory.CreateDirectory( toAbsolutePath );
+				MoveDirectoryMerge( new DirectoryInfo( fromAbsolutePath ), GetPathWithTrailingSeparatorChar( toAbsolutePath ), haveSameRoot );
+				DeleteDirectory( fromAbsolutePath );
 			}
 		}
 
-		public static void DeleteDirectory( string path )
+		private void MoveDirectoryMerge( DirectoryInfo fromDir, string toAbsolutePath, bool haveSameRoot )
+		{
+			FileInfo[] files = fromDir.GetFiles();
+			for( int i = 0; i < files.Length; i++ )
+			{
+				FileInfo fileInfo = files[i];
+				fileInfo.CopyTo( toAbsolutePath + fileInfo.Name, true );
+			}
+
+			DirectoryInfo[] subDirectories = fromDir.GetDirectories();
+			for( int i = 0; i < subDirectories.Length; i++ )
+			{
+				DirectoryInfo directoryInfo = subDirectories[i];
+				string directoryAbsolutePath = toAbsolutePath + directoryInfo.Name + Path.DirectorySeparatorChar;
+				if( haveSameRoot && !Directory.Exists( directoryAbsolutePath ) )
+					directoryInfo.MoveTo( directoryAbsolutePath );
+				else
+				{
+					Directory.CreateDirectory( directoryAbsolutePath );
+					MoveDirectoryMerge( directoryInfo, directoryAbsolutePath, haveSameRoot );
+				}
+			}
+		}
+
+		private void DeleteDirectory( string path )
 		{
 			if( Directory.Exists( path ) )
 			{
