@@ -703,7 +703,7 @@ namespace SimplePatchToolCore
 				DirectoryInfo updatedFilesDir = new DirectoryInfo( comms.DecompressedFilesPath );
 				DirectoryInfo[] updatedSubDirectories = updatedFilesDir.GetDirectories();
 				for( int i = 0; i < updatedSubDirectories.Length; i++ )
-					sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( updatedSubDirectories[i] ).Append( Path.DirectorySeparatorChar ).Append( separator ).Append( comms.RootPath ).Append( updatedSubDirectories[i] ).Append( Path.DirectorySeparatorChar );
+					sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( updatedSubDirectories[i].Name ).Append( Path.DirectorySeparatorChar ).Append( separator ).Append( comms.RootPath ).Append( updatedSubDirectories[i].Name ).Append( Path.DirectorySeparatorChar );
 
 				string versionHolderFilename = comms.VersionInfo.Name + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX;
 				FileInfo[] updatedFiles = updatedFilesDir.GetFiles();
@@ -711,7 +711,7 @@ namespace SimplePatchToolCore
 				{
 					// Don't update the version holder file until everything else is updated properly
 					if( updatedFiles[i].Name != versionHolderFilename )
-						sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( updatedFiles[i] ).Append( separator ).Append( comms.RootPath ).Append( updatedFiles[i] );
+						sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( updatedFiles[i].Name ).Append( separator ).Append( comms.RootPath ).Append( updatedFiles[i].Name );
 				}
 
 				// Update the version holder now
