@@ -13,6 +13,8 @@ namespace SelfPatcherCore
 		private const string DELETE_OP = "_#DELETE#_";
 		private const string MOVE_OP = "_#MOVE#_";
 
+		public const int VERSION = 1;
+
 		private readonly ISelfPatcherListener listener;
 		private string postSelfPatcher;
 

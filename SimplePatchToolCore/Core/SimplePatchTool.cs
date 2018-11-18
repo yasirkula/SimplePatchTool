@@ -447,22 +447,6 @@ namespace SimplePatchToolCore
 				cacheDir.Delete( true );
 			}
 
-			if( comms.SelfPatching )
-			{
-				// If a previous post self-patch operation was not finished, finish it first
-				FileInfo awaitingInstructions = new FileInfo( comms.CachePath + PatchParameters.SELF_PATCH_INSTRUCTIONS_FILENAME );
-				if( awaitingInstructions.Exists && awaitingInstructions.Length > 0L )
-				{
-					string instructions = File.ReadAllText( awaitingInstructions.FullName );
-					int versionEndIndex = instructions.IndexOf( PatchParameters.SELF_PATCH_OP_SEPARATOR );
-					if( versionEndIndex > 0 && instructions.Substring( 0, versionEndIndex ) == rootVersion )
-						return PatchResult.Success;
-
-					// Instructions may have become obsolete, delete them
-					awaitingInstructions.Delete();
-				}
-			}
-
 			PatchMethod patchMethod = PatchMethod.None;
 
 			// Check if repair patch exists
@@ -698,7 +682,7 @@ namespace SimplePatchToolCore
 				// Append current version to the beginning of the file
 				sb.Append( rootVersion );
 
-				// Rename files
+				// 1. Rename files
 				if( incrementalPatchesInfo.Count > 0 )
 				{
 					sb.Append( separator ).Append( PatchParameters.SELF_PATCH_MOVE_OP );
@@ -713,10 +697,27 @@ namespace SimplePatchToolCore
 					}
 				}
 
-				// Update files
-				sb.Append( separator ).Append( PatchParameters.SELF_PATCH_MOVE_OP ).Append( separator ).Append( comms.DecompressedFilesPath ).Append( separator ).Append( comms.RootPath );
+				// 2. Update files
+				sb.Append( separator ).Append( PatchParameters.SELF_PATCH_MOVE_OP );
 
-				// Delete obsolete files
+				DirectoryInfo updatedFilesDir = new DirectoryInfo( comms.DecompressedFilesPath );
+				DirectoryInfo[] updatedSubDirectories = updatedFilesDir.GetDirectories();
+				for( int i = 0; i < updatedSubDirectories.Length; i++ )
+					sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( updatedSubDirectories[i] ).Append( Path.DirectorySeparatorChar ).Append( separator ).Append( comms.RootPath ).Append( updatedSubDirectories[i] ).Append( Path.DirectorySeparatorChar );
+
+				string versionHolderFilename = comms.VersionInfo.Name + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX;
+				FileInfo[] updatedFiles = updatedFilesDir.GetFiles();
+				for( int i = 0; i < updatedFiles.Length; i++ )
+				{
+					// Don't update the version holder file until everything else is updated properly
+					if( updatedFiles[i].Name != versionHolderFilename )
+						sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( updatedFiles[i] ).Append( separator ).Append( comms.RootPath ).Append( updatedFiles[i] );
+				}
+
+				// Update the version holder now
+				sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( versionHolderFilename ).Append( separator ).Append( comms.RootPath ).Append( versionHolderFilename );
+
+				// 3. Delete obsolete files
 				sb.Append( separator ).Append( PatchParameters.SELF_PATCH_DELETE_OP );
 				for( int i = 0; i < obsoleteFiles.Count; i++ )
 					sb.Append( separator ).Append( comms.RootPath + obsoleteFiles[i] );
