@@ -70,7 +70,11 @@ namespace SelfPatcherCore
 					return;
 				}
 
-				listener.OnLogAppeared( string.Concat( "Updating from v", instructions.Substring( 0, tokenEnd ), ", please don't close this window!" ) );
+				try
+				{
+					listener.OnLogAppeared( string.Concat( "Updating from v", instructions.Substring( 0, tokenEnd ), ", please don't close this window!" ) );
+				}
+				catch { }
 
 				int numberOfInstructions = 0;
 				while( tokenStart < instructions.Length )
@@ -97,7 +101,11 @@ namespace SelfPatcherCore
 					tokenEnd = instructions.IndexOf( OP_SEPARATOR );
 					while( tokenStart < instructions.Length )
 					{
-						listener.OnProgressChanged( currentInstruction, numberOfInstructions );
+						try
+						{
+							listener.OnProgressChanged( currentInstruction, numberOfInstructions );
+						}
+						catch { }
 
 						tokenStart = tokenEnd + OP_SEPARATOR.Length;
 						if( tokenStart >= instructions.Length )
@@ -149,7 +157,12 @@ namespace SelfPatcherCore
 					}
 				}
 
-				listener.OnLogAppeared( "Successful..!" );
+				try
+				{
+					listener.OnLogAppeared( "Successful..!" );
+				}
+				catch { }
+
 				listener.OnSuccess();
 			}
 			catch( Exception e )
@@ -163,7 +176,13 @@ namespace SelfPatcherCore
 			if( !string.IsNullOrEmpty( postSelfPatcher ) )
 			{
 				if( !File.Exists( postSelfPatcher ) )
-					listener.OnLogAppeared( "ERROR: post update executable does not exist" );
+				{
+					try
+					{
+						listener.OnLogAppeared( "ERROR: post update executable does not exist" );
+					}
+					catch { }
+				}
 				else
 				{
 					FileInfo executable = new FileInfo( postSelfPatcher );
@@ -216,7 +235,12 @@ namespace SelfPatcherCore
 				catch( IOException e )
 				{
 					// Keep checking the status of the file with 0.5s interval until it is released
-					listener.OnLogAppeared( e.Message + ", retrying in 0.5 seconds: " + to );
+					try
+					{
+						listener.OnLogAppeared( e.Message + ", retrying in 0.5 seconds: " + to );
+					}
+					catch { }
+
 					Thread.Sleep( 500 );
 				}
 			}
@@ -229,7 +253,7 @@ namespace SelfPatcherCore
 			// Moving a directory between two roots/drives via Directory.Move throws an IOException
 			if( haveSameRoot && !Directory.Exists( toAbsolutePath ) )
 			{
-				Directory.CreateDirectory( Directory.GetParent( toAbsolutePath ).FullName );
+				Directory.CreateDirectory( new DirectoryInfo( toAbsolutePath ).Parent.FullName );
 				Directory.Move( fromAbsolutePath, toAbsolutePath );
 			}
 			else

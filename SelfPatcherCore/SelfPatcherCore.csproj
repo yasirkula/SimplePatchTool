@@ -38,4 +38,7 @@
     <Compile Include="SelfPatcher.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy /Y "$(TargetDir)$(TargetFileName)" "$(SolutionDir)Extras\lib\$(TargetFileName)"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

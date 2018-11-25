@@ -1,5 +1,7 @@
 # Simple Patch Tool
 
+![screenshot](https://raw.githubusercontent.com/yasirkula/UnitySimplePatchTool/master/Images/launcer-winforms.png)
+
 SimplePatchTool is a general-purpose patcher library for **standalone** applications.
 
 ## FEATURES

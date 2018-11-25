@@ -718,9 +718,22 @@ namespace SimplePatchToolCore
 				sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( versionHolderFilename ).Append( separator ).Append( comms.RootPath ).Append( versionHolderFilename );
 
 				// 3. Delete obsolete files
+				string selfPatcherDirectory = PatchParameters.SELF_PATCHER_DIRECTORY + Path.DirectorySeparatorChar;
 				sb.Append( separator ).Append( PatchParameters.SELF_PATCH_DELETE_OP );
 				for( int i = 0; i < obsoleteFiles.Count; i++ )
-					sb.Append( separator ).Append( comms.RootPath + obsoleteFiles[i] );
+				{
+					// Delete the obsolete files inside SELF_PATCHER_DIRECTORY manually
+					string absolutePath = comms.RootPath + obsoleteFiles[i];
+					if( obsoleteFiles[i].StartsWith( selfPatcherDirectory, StringComparison.OrdinalIgnoreCase ) )
+					{
+						if( File.Exists( absolutePath ) )
+							File.Delete( absolutePath );
+						else if( Directory.Exists( absolutePath ) )
+							Directory.Delete( absolutePath );
+					}
+					else
+						sb.Append( separator ).Append( absolutePath );
+				}
 
 				sb.Append( separator ).Append( comms.CachePath );
 

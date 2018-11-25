@@ -5,13 +5,6 @@ VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimplePatchToolCore", "SimplePatchToolCore\SimplePatchToolCore.csproj", "{1F98F5CF-E3F9-47B3-89F0-683936395B4A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfPatcherConsoleApp", "SelfPatcherConsoleApp\SelfPatcherConsoleApp.csproj", "{EA4A7719-FB38-4573-970A-40F0A72E2FE3}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimplePatchToolConsoleApp", "SimplePatchToolConsoleApp\SimplePatchToolConsoleApp.csproj", "{DB0C54D2-FDE6-47E7-9707-AD085255074F}"
-	ProjectSection(ProjectDependencies) = postProject
-		{1F98F5CF-E3F9-47B3-89F0-683936395B4A} = {1F98F5CF-E3F9-47B3-89F0-683936395B4A}
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimplePatchToolSecurity", "SimplePatchToolSecurity\SimplePatchToolSecurity.csproj", "{7B785011-2D0E-4290-A0B3-0D1C80B6464A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SelfPatcherCore", "SelfPatcherCore\SelfPatcherCore.csproj", "{62920CFB-C3F2-4541-83F6-0CCF65994858}"
@@ -26,14 +19,6 @@ Global
 		{1F98F5CF-E3F9-47B3-89F0-683936395B4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1F98F5CF-E3F9-47B3-89F0-683936395B4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1F98F5CF-E3F9-47B3-89F0-683936395B4A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EA4A7719-FB38-4573-970A-40F0A72E2FE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EA4A7719-FB38-4573-970A-40F0A72E2FE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EA4A7719-FB38-4573-970A-40F0A72E2FE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EA4A7719-FB38-4573-970A-40F0A72E2FE3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DB0C54D2-FDE6-47E7-9707-AD085255074F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DB0C54D2-FDE6-47E7-9707-AD085255074F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DB0C54D2-FDE6-47E7-9707-AD085255074F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DB0C54D2-FDE6-47E7-9707-AD085255074F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7B785011-2D0E-4290-A0B3-0D1C80B6464A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7B785011-2D0E-4290-A0B3-0D1C80B6464A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B785011-2D0E-4290-A0B3-0D1C80B6464A}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -274,7 +274,7 @@ namespace SimplePatchToolCore
 			// Moving a directory between two roots/drives via Directory.Move throws an IOException
 			if( haveSameRoot && !Directory.Exists( toAbsolutePath ) )
 			{
-				Directory.CreateDirectory( Directory.GetParent( toAbsolutePath ).FullName );
+				Directory.CreateDirectory( new DirectoryInfo( toAbsolutePath ).Parent.FullName );
 				Directory.Move( fromAbsolutePath, toAbsolutePath );
 			}
 			else
