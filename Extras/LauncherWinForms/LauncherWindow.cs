@@ -13,12 +13,12 @@ namespace LauncherWinForms
 		private const string LAUNCHER_VERSIONINFO_URL = ""; // see: https://github.com/yasirkula/SimplePatchTool/wiki/Generating-versionInfoURL
 		private const string MAINAPP_VERSIONINFO_URL = ""; // see: https://github.com/yasirkula/SimplePatchTool/wiki/Generating-versionInfoURL
 		private const string MAINAPP_SUBDIRECTORY = "MainApp";
-		private const string MAINAPP_EXECUTABLE = "MainApp.exe"; // Main app executable is located at {APPLICATION_DIRECTORY}/MainApp/MainApp.exe
+		private const string MAINAPP_EXECUTABLE = "MainApp.exe"; // Main app executable will be located at {APPLICATION_DIRECTORY}/MainApp/MainApp.exe
 		private const string PATCH_NOTES_URL = "http://websitetips.com/articles/copy/lorem/ipsum.txt";
+		private readonly string SELF_PATCHER_PATH = string.Concat( "SPPatcher", Path.DirectorySeparatorChar, "SelfPatcher.exe" );
 
-		private string launcherDirectory;
-		private string mainAppDirectory;
-		private string selfPatcherExecutablePath;
+		private readonly string launcherDirectory;
+		private readonly string mainAppDirectory;
 
 		private SimplePatchTool patcher;
 		private bool isPatchingLauncher;
@@ -31,7 +31,6 @@ namespace LauncherWinForms
 
 			launcherDirectory = Path.GetDirectoryName( PatchUtils.GetCurrentExecutablePath() );
 			mainAppDirectory = Path.Combine( launcherDirectory, MAINAPP_SUBDIRECTORY );
-			selfPatcherExecutablePath = Path.Combine( launcherDirectory, PatchParameters.SELF_PATCHER_DIRECTORY + Path.DirectorySeparatorChar + "SelfPatcher.exe" );
 
 			patchNotesText.Text = string.Empty;
 			statusText.Text = string.Empty;
@@ -186,10 +185,8 @@ namespace LauncherWinForms
 						// Otherwise, we have just updated the main app successfully!
 						if( patcher.Operation == PatchOperation.SelfPatching )
 						{
-							if( !string.IsNullOrEmpty( selfPatcherExecutablePath ) && File.Exists( selfPatcherExecutablePath ) )
-								patcher.ApplySelfPatch( selfPatcherExecutablePath, PatchUtils.GetCurrentExecutablePath() );
-							else
-								UpdateLabel( progressText, "Self patcher does not exist!" );
+							if( !patcher.ApplySelfPatch( Path.Combine( launcherDirectory, SELF_PATCHER_PATH ), PatchUtils.GetCurrentExecutablePath() ) )
+								FetchLogsFromPatcher();
 						}
 					}
 					else
