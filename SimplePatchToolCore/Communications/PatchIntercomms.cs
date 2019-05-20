@@ -25,33 +25,13 @@ namespace SimplePatchToolCore
 					"SimplePatchToolDls" + Path.DirectorySeparatorChar + value.Name + Path.DirectorySeparatorChar;
 				DownloadsPath = CachePath + "Downloads" + Path.DirectorySeparatorChar;
 				DecompressedFilesPath = CachePath + "Files" + Path.DirectorySeparatorChar;
-
-				try
-				{
-					DisposeFileLogger();
-
-					if( PatchUtils.CheckWriteAccessToFolder( CachePath ) )
-					{
-						FileInfo logFile = new FileInfo( CachePath + PatchParameters.LOG_FILE_NAME );
-						if( logFile.Exists && logFile.Length < PatchParameters.LOG_FILE_MAX_SIZE )
-							fileLogger = logFile.AppendText();
-						else
-							fileLogger = logFile.CreateText();
-
-						fileLogger.WriteLine( string.Concat( "=== ", DateTime.UtcNow, " ===" ) );
-					}
-				}
-				catch
-				{
-					DisposeFileLogger();
-				}
 			}
 		}
 
 		public bool Cancel;
 		public bool SilentMode;
 		public bool LogProgress;
-		public bool LogToFile;
+		public bool FileLogging;
 		public bool VerifyFiles;
 
 		public PatchStage Stage;
@@ -61,8 +41,10 @@ namespace SimplePatchToolCore
 		public bool SelfPatching { get { return Patcher.Operation == PatchOperation.SelfPatching; } }
 
 		private readonly Queue<string> logs;
-		private IOperationProgress progress;
 		private StreamWriter fileLogger;
+
+		private IOperationProgress progress;
+		private IOperationProgress overallProgress;
 
 		public PatchIntercomms( SimplePatchTool patcher, string rootPath )
 		{
@@ -77,7 +59,7 @@ namespace SimplePatchToolCore
 			Cancel = false;
 			SilentMode = false;
 			LogProgress = true;
-			LogToFile = true;
+			FileLogging = true;
 			VerifyFiles = false;
 
 			Stage = PatchStage.CheckingUpdates;
@@ -100,7 +82,28 @@ namespace SimplePatchToolCore
 				}
 			}
 
-			if( LogToFile && fileLogger != null )
+			LogToFile( log );
+		}
+
+		// Log exceptions to the log file only
+		public void LogToFile( Exception e )
+		{
+			if( FileLogging && fileLogger != null )
+			{
+				try
+				{
+					fileLogger.WriteLine( e.ToString() );
+				}
+				catch
+				{
+					DisposeFileLogger();
+				}
+			}
+		}
+
+		public void LogToFile( string log )
+		{
+			if( FileLogging && fileLogger != null )
 			{
 				try
 				{
@@ -117,6 +120,12 @@ namespace SimplePatchToolCore
 		{
 			if( !Cancel && LogProgress )
 				this.progress = progress;
+		}
+
+		public void SetOverallProgress( IOperationProgress overallProgress )
+		{
+			if( !Cancel && LogProgress )
+				this.overallProgress = overallProgress;
 		}
 
 		public string FetchLog()
@@ -136,6 +145,17 @@ namespace SimplePatchToolCore
 			{
 				progress.IsUsed = true;
 				return progress;
+			}
+
+			return null;
+		}
+
+		public IOperationProgress FetchOverallProgress()
+		{
+			if( overallProgress != null && !overallProgress.IsUsed )
+			{
+				overallProgress.IsUsed = true;
+				return overallProgress;
 			}
 
 			return null;
@@ -165,9 +185,36 @@ namespace SimplePatchToolCore
 			return false;
 		}
 
+		public List<VersionItem> FindFilesToUpdate()
+		{
+			List<VersionItem> versionInfoFiles = VersionInfo.Files;
+			List<VersionItem> result = new List<VersionItem>();
+			for( int i = 0; i < versionInfoFiles.Count; i++ )
+			{
+				if( Cancel )
+					return null;
+
+				VersionItem item = versionInfoFiles[i];
+				FileInfo localFile = new FileInfo( RootPath + item.Path );
+				if( localFile.Exists && localFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
+					continue;
+
+				if( SelfPatching )
+				{
+					FileInfo decompressedFile = new FileInfo( DecompressedFilesPath + item.Path );
+					if( decompressedFile.Exists && decompressedFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
+						continue;
+				}
+
+				result.Add( item );
+			}
+
+			return result;
+		}
+
 		public string GetDownloadPathForPatch( string patchVersion )
 		{
-			return CachePath + patchVersion + PatchParameters.PATCH_FILE_EXTENSION;
+			return CachePath + patchVersion + PatchParameters.INCREMENTAL_PATCH_FILE_EXTENSION;
 		}
 
 		public string GetDecompressPathForPatch( string patchVersion )
@@ -178,6 +225,23 @@ namespace SimplePatchToolCore
 		public void UpdateVersion( VersionCode version )
 		{
 			PatchUtils.SetVersion( SelfPatching ? DecompressedFilesPath : RootPath, VersionInfo.Name, version );
+		}
+
+		public void InitializeFileLogger()
+		{
+			if( fileLogger != null )
+				return;
+
+			try
+			{
+				FileInfo logFile = new FileInfo( RootPath + PatchParameters.LOG_FILE_NAME );
+				fileLogger = new StreamWriter( logFile.FullName, logFile.Exists && logFile.Length < PatchParameters.LOG_FILE_MAX_SIZE );
+				fileLogger.WriteLine( string.Concat( "=== ", DateTime.UtcNow, " ===" ) );
+			}
+			catch
+			{
+				DisposeFileLogger();
+			}
 		}
 
 		public void DisposeFileLogger()

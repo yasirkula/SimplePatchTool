@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Security;
 using System.Security.Cryptography;
@@ -103,7 +104,7 @@ namespace SimplePatchToolCore
 			return incrementalPatch.FromVersion.ToString().Replace( '.', '_' ) + "__" + incrementalPatch.ToVersion.ToString().Replace( '.', '_' );
 		}
 
-		public static string PatchVersion( this PatchInfo patchInfo )
+		public static string PatchVersion( this IncrementalPatchInfo patchInfo )
 		{
 			return patchInfo.FromVersion.ToString().Replace( '.', '_' ) + "__" + patchInfo.ToVersion.ToString().Replace( '.', '_' );
 		}
@@ -129,8 +130,8 @@ namespace SimplePatchToolCore
 				VersionInfo result = serializer.Deserialize( stream ) as VersionInfo;
 				if( result != null )
 				{
-					result.Patches.RemoveAll( ( patch ) => !patch.FromVersion.IsValid || !patch.ToVersion.IsValid || patch.ToVersion <= patch.FromVersion );
-					result.Patches.Sort( IncrementalPatchComparison );
+					result.IncrementalPatches.RemoveAll( ( patch ) => !patch.FromVersion.IsValid || !patch.ToVersion.IsValid || patch.ToVersion <= patch.FromVersion );
+					result.IncrementalPatches.Sort( IncrementalPatchComparison );
 
 					// BaseDownloadURL uses '/' as path separator char, be consistent
 					if( result.BaseDownloadURL.StartsWith( "file://" ) )
@@ -153,21 +154,21 @@ namespace SimplePatchToolCore
 			}
 		}
 
-		public static void SerializePatchInfoToXML( PatchInfo patch, string xmlPath )
+		public static void SerializeIncrementalPatchInfoToXML( IncrementalPatchInfo patch, string xmlPath )
 		{
-			var serializer = new XmlSerializer( typeof( PatchInfo ) );
+			var serializer = new XmlSerializer( typeof( IncrementalPatchInfo ) );
 			using( var stream = new FileStream( xmlPath, FileMode.Create ) )
 			{
 				serializer.Serialize( stream, patch );
 			}
 		}
 
-		public static PatchInfo DeserializeXMLToPatchInfo( string xmlContent )
+		public static IncrementalPatchInfo DeserializeXMLToIncrementalPatchInfo( string xmlContent )
 		{
-			var serializer = new XmlSerializer( typeof( PatchInfo ) );
+			var serializer = new XmlSerializer( typeof( IncrementalPatchInfo ) );
 			using( var stream = new StringReader( xmlContent ) )
 			{
-				PatchInfo result = serializer.Deserialize( stream ) as PatchInfo;
+				IncrementalPatchInfo result = serializer.Deserialize( stream ) as IncrementalPatchInfo;
 				if( result != null )
 				{
 					// Always use Path.DirectorySeparatorChar
@@ -189,7 +190,25 @@ namespace SimplePatchToolCore
 			}
 		}
 
-		private static int IncrementalPatchComparison( IncrementalPatch patch1, IncrementalPatch patch2 )
+		public static void SerializeProjectInfoToXML( ProjectInfo project, string xmlPath )
+		{
+			var serializer = new XmlSerializer( typeof( ProjectInfo ) );
+			using( var stream = new FileStream( xmlPath, FileMode.Create ) )
+			{
+				serializer.Serialize( stream, project );
+			}
+		}
+
+		public static ProjectInfo DeserializeXMLToProjectInfo( string xmlContent )
+		{
+			var serializer = new XmlSerializer( typeof( ProjectInfo ) );
+			using( var stream = new StringReader( xmlContent ) )
+			{
+				return serializer.Deserialize( stream ) as ProjectInfo;
+			}
+		}
+
+		internal static int IncrementalPatchComparison( IncrementalPatch patch1, IncrementalPatch patch2 )
 		{
 			int comparison = patch1.FromVersion.CompareTo( patch2.FromVersion );
 			if( comparison != 0 )
@@ -213,24 +232,16 @@ namespace SimplePatchToolCore
 
 				File.Create( testFilePath ).Close();
 
-				// Check if file is created inside VirtualStore directory (UAC-issue)
+				// Check if file is created inside VirtualStore directory (UAC-issue on Windows)
 				string root = Path.GetPathRoot( testFilePath );
 				string virtualPathRelative = Path.Combine( "VirtualStore", testFilePath.Substring( root.Length ) );
 				string virtualPathAbsolute = Path.Combine( Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData ), virtualPathRelative );
-				try
-				{
-					if( File.Exists( virtualPathAbsolute ) )
-						return false;
-				}
-				catch { }
+				if( File.Exists( virtualPathAbsolute ) )
+					return false;
 
 				virtualPathAbsolute = Path.Combine( root, virtualPathRelative );
-				try
-				{
-					if( File.Exists( virtualPathAbsolute ) )
-						return false;
-				}
-				catch { }
+				if( File.Exists( virtualPathAbsolute ) )
+					return false;
 			}
 			catch( UnauthorizedAccessException )
 			{
@@ -253,11 +264,34 @@ namespace SimplePatchToolCore
 			return true;
 		}
 
+		public static void CopyFile( string from, string to )
+		{
+			// Replacing a file that is in use can throw IOException; in such cases,
+			// waiting for a short time might resolve the issue
+			for( int i = 8; i >= 0; i-- )
+			{
+				if( i > 0 )
+				{
+					try
+					{
+						File.Copy( from, to, true );
+						break;
+					}
+					catch( IOException )
+					{
+						Thread.Sleep( 500 );
+					}
+				}
+				else
+					File.Copy( from, to, true );
+			}
+		}
+
 		public static void MoveFile( string fromAbsolutePath, string toAbsolutePath )
 		{
 			if( File.Exists( toAbsolutePath ) )
 			{
-				File.Copy( fromAbsolutePath, toAbsolutePath, true );
+				CopyFile( fromAbsolutePath, toAbsolutePath );
 				File.Delete( fromAbsolutePath );
 			}
 			else
@@ -291,7 +325,7 @@ namespace SimplePatchToolCore
 			for( int i = 0; i < files.Length; i++ )
 			{
 				FileInfo fileInfo = files[i];
-				fileInfo.CopyTo( toAbsolutePath + fileInfo.Name, true );
+				CopyFile( fileInfo.FullName, toAbsolutePath + fileInfo.Name );
 			}
 
 			DirectoryInfo[] subDirectories = fromDir.GetDirectories();
@@ -306,6 +340,32 @@ namespace SimplePatchToolCore
 					Directory.CreateDirectory( directoryAbsolutePath );
 					MoveDirectoryMerge( directoryInfo, directoryAbsolutePath, haveSameRoot );
 				}
+			}
+		}
+
+		public static void CopyDirectory( string fromAbsolutePath, string toAbsolutePath )
+		{
+			if( !Directory.Exists( toAbsolutePath ) )
+				Directory.CreateDirectory( toAbsolutePath );
+
+			CopyDirectoryInternal( new DirectoryInfo( fromAbsolutePath ), GetPathWithTrailingSeparatorChar( toAbsolutePath ) );
+		}
+
+		private static void CopyDirectoryInternal( DirectoryInfo fromDir, string toAbsolutePath )
+		{
+			FileInfo[] files = fromDir.GetFiles();
+			for( int i = 0; i < files.Length; i++ )
+			{
+				FileInfo fileInfo = files[i];
+				CopyFile( fileInfo.FullName, toAbsolutePath + fileInfo.Name );
+			}
+
+			DirectoryInfo[] subDirectories = fromDir.GetDirectories();
+			for( int i = 0; i < subDirectories.Length; i++ )
+			{
+				string directoryAbsolutePath = toAbsolutePath + subDirectories[i].Name + Path.DirectorySeparatorChar;
+				Directory.CreateDirectory( directoryAbsolutePath );
+				CopyDirectoryInternal( subDirectories[i], directoryAbsolutePath );
 			}
 		}
 
@@ -340,28 +400,20 @@ namespace SimplePatchToolCore
 
 		public static VersionInfo GetVersionInfoFromPath( string path )
 		{
-			try
-			{
-				string xmlContent = File.ReadAllText( path );
-				return DeserializeXMLToVersionInfo( xmlContent );
-			}
-			catch
-			{
-				return null;
-			}
+			string xmlContent = File.ReadAllText( path );
+			return DeserializeXMLToVersionInfo( xmlContent );
 		}
 
-		public static PatchInfo GetPatchInfoFromPath( string path )
+		public static IncrementalPatchInfo GetIncrementalPatchInfoFromPath( string path )
 		{
-			try
-			{
-				string xmlContent = File.ReadAllText( path );
-				return DeserializeXMLToPatchInfo( xmlContent );
-			}
-			catch
-			{
-				return null;
-			}
+			string xmlContent = File.ReadAllText( path );
+			return DeserializeXMLToIncrementalPatchInfo( xmlContent );
+		}
+
+		public static ProjectInfo GetProjectInfoFromPath( string path )
+		{
+			string xmlContent = File.ReadAllText( path );
+			return DeserializeXMLToProjectInfo( xmlContent );
 		}
 
 		public static VersionCode GetVersion( string rootPath, string projectName )
@@ -393,9 +445,19 @@ namespace SimplePatchToolCore
 			{
 				using( ProcessModule mainModule = process.MainModule )
 				{
-					return mainModule.FileName;
+					return Path.GetFullPath( mainModule.FileName );
 				}
 			}
+		}
+
+		public static string GetCurrentAppVersion( string projectName = null )
+		{
+			string searchPattern = string.Concat( "*", projectName == null ? "" : projectName.Trim(), PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX );
+			string[] versionHolders = Directory.GetFiles( Path.GetDirectoryName( GetCurrentExecutablePath() ), searchPattern, SearchOption.AllDirectories );
+			if( versionHolders.Length > 0 )
+				return File.ReadAllText( versionHolders[0] );
+
+			return null;
 		}
 
 		public static int GetNumberOfRunningProcesses( string executablePath )
@@ -421,15 +483,10 @@ namespace SimplePatchToolCore
 							}
 						}
 					}
-					catch
-					{
-					}
+					catch { }
 				}
 			}
-			catch
-			{
-				result = 0;
-			}
+			catch { }
 
 			return result;
 		}
@@ -474,6 +531,26 @@ namespace SimplePatchToolCore
 		public static Regex WildcardToRegex( string wildcardStr )
 		{
 			return new Regex( "^" + Regex.Escape( wildcardStr ).Replace( "\\?", "." ).Replace( "\\*", ".*" ) + "$", RegexOptions.None );
+		}
+
+		internal static Thread CreateBackgroundThread( ThreadStart start )
+		{
+			return new Thread( start )
+			{
+				IsBackground = true,
+				CurrentCulture = CultureInfo.InvariantCulture, // To receive English exception messages
+				CurrentUICulture = CultureInfo.InvariantCulture // To receive English exception messages
+			};
+		}
+
+		internal static Thread CreateBackgroundThread( ParameterizedThreadStart start )
+		{
+			return new Thread( start )
+			{
+				IsBackground = true,
+				CurrentCulture = CultureInfo.InvariantCulture, // To receive English exception messages
+				CurrentUICulture = CultureInfo.InvariantCulture // To receive English exception messages
+			};
 		}
 
 		// Handles 3 kinds of links (they can be preceeded by https://):

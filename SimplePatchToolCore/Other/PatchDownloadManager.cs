@@ -15,7 +15,9 @@ namespace SimplePatchToolCore
 	internal class PatchDownloadManager
 	{
 		private readonly PatchIntercomms comms;
+
 		private IDownloadHandler downloadHandler;
+		private IDownloadListener downloadListener;
 
 		private long lastDownloadBytes;
 		private DateTime lastDownloadSpeedCalcTime;
@@ -50,6 +52,11 @@ namespace SimplePatchToolCore
 			downloadHandler.OnDownloadFileProgressChange += DownloadFileProgressChangedCallback;
 		}
 
+		public void SetDownloadListener( IDownloadListener downloadListener )
+		{
+			this.downloadListener = downloadListener;
+		}
+
 		#region Callback Functions
 		// Credit: https://alexfeinberg.wordpress.com/2014/09/14/how-to-use-net-webclient-synchronously-and-still-receive-progress-updates/
 		private void DownloadStringCompletedCallback( bool cancelled, Exception error, string result, object userState )
@@ -65,12 +72,7 @@ namespace SimplePatchToolCore
 		// Credit: https://alexfeinberg.wordpress.com/2014/09/14/how-to-use-net-webclient-synchronously-and-still-receive-progress-updates/
 		private void DownloadFileCompletedCallback( bool cancelled, Exception error, object userState )
 		{
-			if( cancelled )
-			{
-				if( File.Exists( downloadHandler.DownloadedFilePath ) )
-					File.Delete( downloadHandler.DownloadedFilePath );
-			}
-			else if( comms.LogProgress )
+			if( !cancelled && comms.LogProgress )
 			{
 				DateTime now = DateTime.Now;
 				double deltaSeconds = ( now - lastDownloadSpeedCalcTime ).TotalSeconds;
@@ -100,14 +102,15 @@ namespace SimplePatchToolCore
 			double deltaSeconds = ( now - lastDownloadSpeedCalcTime ).TotalSeconds;
 			if( deltaSeconds >= PatchParameters.DownloadStatsUpdateInterval )
 			{
-				if( verifyDownloadSize )
-				{
-					if( totalBytesToReceive > 0 && totalBytesToReceive != downloadHandler.DownloadedFileSize )
-					{
-						downloadHandler.Cancel();
-						return;
-					}
-				}
+				// See: https://github.com/yasirkula/UnitySimplePatchTool/issues/4
+				//if( verifyDownloadSize )
+				//{
+				//	if( totalBytesToReceive > 0 && totalBytesToReceive != downloadHandler.DownloadedFileSize )
+				//	{
+				//		downloadHandler.Cancel();
+				//		return;
+				//	}
+				//}
 
 				if( CalculateDownloadStats( bytesReceived, totalBytesToReceive, deltaSeconds ) )
 				{
@@ -149,6 +152,9 @@ namespace SimplePatchToolCore
 
 			if( bytesChange > 0 )
 			{
+				if( downloadListener != null )
+					downloadListener.DownloadedBytes( bytesChange );
+
 				downloadHandler.Progress.UpdateValues( (long) ( bytesChange / deltaSeconds ), bytes );
 				return true;
 			}
@@ -198,6 +204,7 @@ namespace SimplePatchToolCore
 					}
 				}
 
+				comms.LogToFile( e );
 				return false;
 			}
 		}
@@ -235,12 +242,14 @@ namespace SimplePatchToolCore
 
 					return downloadStringResult;
 				}
-				catch( WebException )
+				catch( WebException e )
 				{
+					comms.LogToFile( e );
 					Thread.Sleep( PatchParameters.FailedDownloadsCooldownMillis );
 				}
-				catch( UriFormatException )
+				catch( UriFormatException e )
 				{
+					comms.LogToFile( e );
 					return null;
 				}
 			}
@@ -311,12 +320,14 @@ namespace SimplePatchToolCore
 
 					return new FileInfo( path );
 				}
-				catch( WebException )
+				catch( WebException e )
 				{
+					comms.LogToFile( e );
 					Thread.Sleep( PatchParameters.FailedDownloadsCooldownMillis );
 				}
-				catch( UriFormatException )
+				catch( UriFormatException e )
 				{
+					comms.LogToFile( e );
 					return null;
 				}
 			}
@@ -390,6 +401,11 @@ namespace SimplePatchToolCore
 		void DownloadFile( string url, string path, object userState );
 
 		void Cancel();
+	}
+
+	internal interface IDownloadListener
+	{
+		void DownloadedBytes( long bytes );
 	}
 	#endregion
 

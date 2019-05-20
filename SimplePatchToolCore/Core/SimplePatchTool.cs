@@ -9,6 +9,7 @@ using System.Threading;
 namespace SimplePatchToolCore
 {
 	public enum PatchOperation { Patching, SelfPatching, CheckingForUpdates }
+	public enum PatchMethod { None, RepairPatch, IncrementalPatch, InstallerPatch }
 	public enum PatchResult { Failed, Success, AlreadyUpToDate }
 	public enum PatchStage
 	{
@@ -22,7 +23,7 @@ namespace SimplePatchToolCore
 	public enum PatchFailReason
 	{
 		None, Cancelled, Unknown, FatalException,
-		InsufficientSpace, RequiresAdminPriviledges,
+		InsufficientSpace, RequiresAdminPriviledges, MultipleRunningInstances,
 		NoSuitablePatchMethodFound, FilesAreNotUpToDateAfterPatch,
 		UnderMaintenance_AbortApp, UnderMaintenance_CanLaunchApp,
 		DownloadError, CorruptDownloadError,
@@ -37,28 +38,46 @@ namespace SimplePatchToolCore
 
 	public class SimplePatchTool
 	{
-		private enum PatchMethod { None, IncrementalPatch, Repair }
+		private struct PatchMethodHolder
+		{
+			public readonly PatchMethod method;
+			public readonly long size;
+
+			public PatchMethodHolder( PatchMethod method, long size )
+			{
+				this.method = method;
+				this.size = size;
+			}
+		}
+
+		private readonly string[] ROOT_PATH_PLACEHOLDERS = new string[] { "{ROOT_PATH}", "{APPLICATION_DIRECTORY}" };
 
 		private readonly PatchIntercomms comms;
 		private readonly string versionInfoURL;
 
 		private VersionCode currentVersion;
 
+		private bool canRepairPatch;
 		private bool canIncrementalPatch;
-		private bool canRepair;
+		private bool canInstallerPatch;
+
+		private bool checkForMultipleRunningInstances;
 
 		private readonly List<IncrementalPatch> incrementalPatches;
-		private readonly List<PatchInfo> incrementalPatchesInfo;
+		private readonly List<IncrementalPatchInfo> incrementalPatchesInfo;
 		private readonly HashSet<string> filesInVersion;
 
 		public bool IsRunning { get; private set; }
 		public PatchOperation Operation { get; private set; }
+		public PatchMethod PatchMethod { get; private set; }
 		public PatchResult Result { get; private set; }
 
 		internal DownloadHandlerFactory DownloadHandlerFactory { get; private set; }
 		internal FreeDiskSpaceCalculator FreeDiskSpaceCalculator { get; private set; }
 		internal XMLVerifier VersionInfoVerifier { get; private set; }
 		internal XMLVerifier PatchInfoVerifier { get; private set; }
+
+		public string NewVersion { get { return comms.VersionInfo != null ? comms.VersionInfo.Version : null; } }
 
 		public PatchStage PatchStage
 		{
@@ -108,39 +127,56 @@ namespace SimplePatchToolCore
 			if( string.IsNullOrEmpty( versionInfoURL ) )
 				throw new ArgumentException( Localization.Get( StringId.E_XCanNotBeEmpty, "'versionInfoURL'" ) );
 
+			Localization.Get( StringId.Done ); // Force the localization system to be initialized with the current culture/language
+
+			for( int i = 0; i < ROOT_PATH_PLACEHOLDERS.Length; i++ )
+			{
+				if( rootPath.IndexOf( ROOT_PATH_PLACEHOLDERS[i] ) >= 0 )
+					rootPath.Replace( ROOT_PATH_PLACEHOLDERS[i], Path.GetDirectoryName( PatchUtils.GetCurrentExecutablePath() ) );
+			}
+
 			comms = new PatchIntercomms( this, PatchUtils.GetPathWithTrailingSeparatorChar( rootPath ) );
 			this.versionInfoURL = versionInfoURL;
 
+			canRepairPatch = true;
 			canIncrementalPatch = true;
-			canRepair = true;
+			canInstallerPatch = true;
+
+			checkForMultipleRunningInstances = true;
 
 			incrementalPatches = new List<IncrementalPatch>();
-			incrementalPatchesInfo = new List<PatchInfo>();
+			incrementalPatchesInfo = new List<IncrementalPatchInfo>();
 			filesInVersion = new HashSet<string>();
 
 			UseCustomDownloadHandler( null );
 			UseCustomFreeSpaceCalculator( null );
 
 			IsRunning = false;
+			PatchMethod = PatchMethod.None;
 			Result = PatchResult.Failed;
 		}
 
-		[Obsolete( "Use UseRepairPatch instead" )]
-		public SimplePatchTool UseRepair( bool canRepair )
+		public SimplePatchTool UseRepairPatch( bool canRepairPatch )
 		{
-			this.canRepair = canRepair;
-			return this;
-		}
-
-		public SimplePatchTool UseRepairPatch( bool canRepair )
-		{
-			this.canRepair = canRepair;
+			this.canRepairPatch = canRepairPatch;
 			return this;
 		}
 
 		public SimplePatchTool UseIncrementalPatch( bool canIncrementalPatch )
 		{
 			this.canIncrementalPatch = canIncrementalPatch;
+			return this;
+		}
+
+		public SimplePatchTool UseInstallerPatch( bool canInstallerPatch )
+		{
+			this.canInstallerPatch = canInstallerPatch;
+			return this;
+		}
+
+		public SimplePatchTool CheckForMultipleRunningInstances( bool checkForMultipleRunningInstances )
+		{
+			this.checkForMultipleRunningInstances = checkForMultipleRunningInstances;
 			return this;
 		}
 
@@ -197,7 +233,7 @@ namespace SimplePatchToolCore
 
 		public SimplePatchTool LogToFile( bool value )
 		{
-			comms.LogToFile = value;
+			comms.FileLogging = value;
 			return this;
 		}
 
@@ -223,17 +259,21 @@ namespace SimplePatchToolCore
 			return comms.FetchProgress();
 		}
 
+		public IOperationProgress FetchOverallProgress()
+		{
+			return comms.FetchOverallProgress();
+		}
+
 		public bool CheckForUpdates( bool checkVersionOnly = true )
 		{
 			if( !IsRunning )
 			{
 				IsRunning = true;
 				Operation = PatchOperation.CheckingForUpdates;
+				PatchMethod = PatchMethod.None;
 				comms.Cancel = false;
 
-				Thread workerThread = new Thread( new ParameterizedThreadStart( ThreadCheckForUpdatesFunction ) ) { IsBackground = true };
-				workerThread.Start( checkVersionOnly );
-
+				PatchUtils.CreateBackgroundThread( new ParameterizedThreadStart( ThreadCheckForUpdatesFunction ) ).Start( checkVersionOnly );
 				return true;
 			}
 
@@ -246,11 +286,10 @@ namespace SimplePatchToolCore
 			{
 				IsRunning = true;
 				Operation = selfPatching ? PatchOperation.SelfPatching : PatchOperation.Patching;
+				PatchMethod = PatchMethod.None;
 				comms.Cancel = false;
 
-				Thread workerThread = new Thread( new ThreadStart( ThreadPatchFunction ) ) { IsBackground = true };
-				workerThread.Start();
-
+				PatchUtils.CreateBackgroundThread( new ThreadStart( ThreadPatchFunction ) ).Start();
 				return true;
 			}
 
@@ -261,41 +300,57 @@ namespace SimplePatchToolCore
 		// Starts specified self patcher executable with required parameters
 		public bool ApplySelfPatch( string selfPatcherExecutable, string postSelfPatchExecutable = null )
 		{
-			selfPatcherExecutable = selfPatcherExecutable.Trim();
-			if( postSelfPatchExecutable != null )
-				postSelfPatchExecutable = postSelfPatchExecutable.Trim();
+			comms.InitializeFileLogger();
 
-			if( !File.Exists( selfPatcherExecutable ) )
+			try
 			{
-				comms.Log( Localization.Get( StringId.E_SelfPatcherDoesNotExist ) );
+				selfPatcherExecutable = selfPatcherExecutable.Trim();
+				if( postSelfPatchExecutable != null )
+					postSelfPatchExecutable = postSelfPatchExecutable.Trim();
+
+				if( !File.Exists( selfPatcherExecutable ) )
+				{
+					comms.Log( Localization.Get( StringId.E_SelfPatcherDoesNotExist ) );
+					return false;
+				}
+
+				string instructionsPath = comms.CachePath + PatchParameters.SELF_PATCH_INSTRUCTIONS_FILENAME;
+				string completedInstructionsPath = comms.CachePath + PatchParameters.SELF_PATCH_COMPLETED_INSTRUCTIONS_FILENAME;
+				if( !File.Exists( instructionsPath ) )
+					return false;
+
+				FileInfo selfPatcher = new FileInfo( selfPatcherExecutable );
+
+				string args = "\"" + instructionsPath + "\" \"" + completedInstructionsPath + "\"";
+				if( !string.IsNullOrEmpty( postSelfPatchExecutable ) && File.Exists( postSelfPatchExecutable ) )
+					args += " \"" + postSelfPatchExecutable + "\"";
+
+				ProcessStartInfo startInfo = new ProcessStartInfo( selfPatcher.FullName )
+				{
+					Arguments = args,
+					WorkingDirectory = selfPatcher.DirectoryName
+				};
+
+				Process.Start( startInfo );
+			}
+			catch( Exception e )
+			{
+				comms.LogToFile( e );
 				return false;
 			}
-
-			string instructionsPath = comms.CachePath + PatchParameters.SELF_PATCH_INSTRUCTIONS_FILENAME;
-			string completedInstructionsPath = comms.CachePath + PatchParameters.SELF_PATCH_COMPLETED_INSTRUCTIONS_FILENAME;
-			if( !File.Exists( instructionsPath ) )
-				return false;
-
-			FileInfo selfPatcher = new FileInfo( selfPatcherExecutable );
-
-			string args = "\"" + instructionsPath + "\" \"" + completedInstructionsPath + "\"";
-			if( !string.IsNullOrEmpty( postSelfPatchExecutable ) && File.Exists( postSelfPatchExecutable ) )
-				args += " \"" + postSelfPatchExecutable + "\"";
-
-			ProcessStartInfo startInfo = new ProcessStartInfo( selfPatcher.FullName )
+			finally
 			{
-				Arguments = args,
-				WorkingDirectory = selfPatcher.DirectoryName
-			};
+				comms.DisposeFileLogger();
+			}
 
-			Process.Start( startInfo );
 			Process.GetCurrentProcess().Kill();
-
 			return true;
 		}
 
 		private void ThreadCheckForUpdatesFunction( object checkVersionOnlyParameter )
 		{
+			comms.InitializeFileLogger();
+
 			try
 			{
 				bool checkVersionOnly = (bool) checkVersionOnlyParameter;
@@ -321,6 +376,8 @@ namespace SimplePatchToolCore
 
 		private void ThreadPatchFunction()
 		{
+			comms.InitializeFileLogger();
+
 			try
 			{
 				Result = Patch();
@@ -364,7 +421,7 @@ namespace SimplePatchToolCore
 			}
 			else
 			{
-				if( currentVersion >= comms.VersionInfo.Version )
+				if( currentVersion == comms.VersionInfo.Version )
 					return PatchResult.AlreadyUpToDate;
 				else
 					return PatchResult.Success;
@@ -417,6 +474,18 @@ namespace SimplePatchToolCore
 				return PatchResult.Failed;
 			}
 
+			if( checkForMultipleRunningInstances )
+			{
+				string currentExecutablePath = PatchUtils.GetCurrentExecutablePath();
+				if( PatchUtils.GetNumberOfRunningProcesses( currentExecutablePath ) > 1 )
+				{
+					FailReason = PatchFailReason.MultipleRunningInstances;
+					FailDetails = Localization.Get( StringId.E_AnotherInstanceOfXIsRunning, Path.GetFileName( currentExecutablePath ) );
+
+					return PatchResult.Failed;
+				}
+			}
+
 			if( comms.Cancel )
 				return PatchResult.Failed;
 
@@ -447,27 +516,58 @@ namespace SimplePatchToolCore
 				cacheDir.Delete( true );
 			}
 
-			PatchMethod patchMethod = PatchMethod.None;
+			bool canRepairPatch = this.canRepairPatch;
+			bool canIncrementalPatch = this.canIncrementalPatch;
+			bool canInstallerPatch = this.canInstallerPatch;
 
-			// Check if repair patch exists
+			List<PatchMethodHolder> preferredPatchMethods = new List<PatchMethodHolder>( 3 );
 			List<VersionItem> versionInfoFiles = comms.VersionInfo.Files;
-			for( int i = 0; i < versionInfoFiles.Count; i++ )
+
+			if( canRepairPatch )
 			{
-				// Files will have default compressed values when repair patch is not generated
-				VersionItem item = versionInfoFiles[i];
-				if( item.CompressedFileSize == 0L && string.IsNullOrEmpty( item.CompressedMd5Hash ) )
+				for( int i = 0; i < versionInfoFiles.Count; i++ )
 				{
-					canRepair = false;
-					break;
+					VersionItem item = versionInfoFiles[i];
+					if( item.CompressedFileSize == 0L && string.IsNullOrEmpty( item.CompressedMd5Hash ) )
+					{
+						canRepairPatch = false;
+						break;
+					}
+				}
+
+				if( canRepairPatch )
+				{
+					long repairPatchSize = 0L;
+					for( int i = 0; i < versionInfoFiles.Count; i++ )
+					{
+						VersionItem item = versionInfoFiles[i];
+						FileInfo localFile = new FileInfo( comms.RootPath + item.Path );
+						if( localFile.Exists && localFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
+							continue;
+
+						FileInfo downloadedFile = new FileInfo( comms.DownloadsPath + item.Path );
+						if( downloadedFile.Exists && downloadedFile.MatchesSignature( item.CompressedFileSize, item.CompressedMd5Hash ) )
+							continue;
+
+						if( comms.SelfPatching )
+						{
+							FileInfo decompressedFile = new FileInfo( comms.DecompressedFilesPath + item.Path );
+							if( decompressedFile.Exists && decompressedFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
+								continue;
+						}
+
+						repairPatchSize += item.CompressedFileSize;
+					}
+
+					preferredPatchMethods.Add( new PatchMethodHolder( PatchMethod.RepairPatch, repairPatchSize ) );
 				}
 			}
 
-			// Find patch method to use by default
 			if( canIncrementalPatch )
 			{
 				// Find incremental patches to apply
 				VersionCode thisVersion = rootVersion;
-				List<IncrementalPatch> versionInfoPatches = comms.VersionInfo.Patches;
+				List<IncrementalPatch> versionInfoPatches = comms.VersionInfo.IncrementalPatches;
 				for( int i = 0; i < versionInfoPatches.Count; i++ )
 				{
 					if( thisVersion == comms.VersionInfo.Version )
@@ -485,14 +585,10 @@ namespace SimplePatchToolCore
 					incrementalPatches.Clear();
 
 				if( incrementalPatches.Count == 0 )
-					patchMethod = canRepair ? PatchMethod.Repair : PatchMethod.None;
-				else if( !canRepair )
-					patchMethod = PatchMethod.IncrementalPatch;
+					canIncrementalPatch = false;
 				else
 				{
-					// Find cheapest patch method
 					long incrementalPatchSize = 0L;
-					long repairSize = 0L;
 					for( int i = 0; i < incrementalPatches.Count; i++ )
 					{
 						IncrementalPatch incrementalPatch = incrementalPatches[i];
@@ -506,35 +602,22 @@ namespace SimplePatchToolCore
 						incrementalPatchSize += incrementalPatch.PatchSize;
 					}
 
-					for( int i = 0; i < versionInfoFiles.Count; i++ )
-					{
-						VersionItem item = versionInfoFiles[i];
-
-						FileInfo localFile = new FileInfo( comms.RootPath + item.Path );
-						if( localFile.Exists && localFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
-							continue;
-
-						FileInfo downloadedFile = new FileInfo( comms.DownloadsPath + item.Path );
-						if( downloadedFile.Exists && downloadedFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
-							continue;
-
-						if( comms.SelfPatching )
-						{
-							FileInfo decompressedFile = new FileInfo( comms.DecompressedFilesPath + item.Path );
-							if( decompressedFile.Exists && decompressedFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
-								continue;
-						}
-
-						repairSize += item.CompressedFileSize;
-					}
-
-					patchMethod = repairSize <= incrementalPatchSize ? PatchMethod.Repair : PatchMethod.IncrementalPatch;
+					preferredPatchMethods.Add( new PatchMethodHolder( PatchMethod.IncrementalPatch, incrementalPatchSize ) );
 				}
 			}
-			else if( canRepair )
-				patchMethod = PatchMethod.Repair;
 
-			if( patchMethod == PatchMethod.None )
+			if( canInstallerPatch )
+			{
+				InstallerPatch installerPatch = comms.VersionInfo.InstallerPatch;
+				if( installerPatch.PatchSize == 0L && string.IsNullOrEmpty( installerPatch.PatchMd5Hash ) )
+					canInstallerPatch = false;
+				else
+					preferredPatchMethods.Add( new PatchMethodHolder( PatchMethod.InstallerPatch, installerPatch.PatchSize ) );
+			}
+
+			preferredPatchMethods.Sort( ( p1, p2 ) => p1.size.CompareTo( p2.size ) );
+
+			if( preferredPatchMethods.Count == 0 )
 			{
 				FailReason = PatchFailReason.NoSuitablePatchMethodFound;
 				FailDetails = Localization.Get( StringId.E_NoSuitablePatchMethodFound );
@@ -582,31 +665,37 @@ namespace SimplePatchToolCore
 					return PatchResult.Failed;
 			}
 
-			// Start patching
-			if( patchMethod == PatchMethod.Repair )
-			{
-				if( !PatchUsingRepair() )
-				{
-					if( comms.Cancel )
-						return PatchResult.Failed;
+			for( int i = 0; i < preferredPatchMethods.Count; i++ )
+				comms.LogToFile( Localization.Get( StringId.PatchMethodXSizeY, preferredPatchMethods[i].method, preferredPatchMethods[i].size.ToMegabytes() + "MB" ) );
 
-					if( !canIncrementalPatch || !PatchUsingIncrementalPatches() )
-						return PatchResult.Failed;
-				}
-			}
-			else if( !PatchUsingIncrementalPatches() )
+			// Start patching
+			for( int i = 0; i < preferredPatchMethods.Count; i++ )
 			{
+				PatchMethod patchMethod = preferredPatchMethods[i].method;
+
+				bool success;
+				if( patchMethod == PatchMethod.RepairPatch )
+				{
+					PatchMethod = PatchMethod.RepairPatch;
+					success = PatchUsingRepairPatch();
+				}
+				else if( patchMethod == PatchMethod.IncrementalPatch )
+				{
+					PatchMethod = PatchMethod.IncrementalPatch;
+					success = PatchUsingIncrementalPatches();
+				}
+				else
+				{
+					PatchMethod = PatchMethod.InstallerPatch;
+					success = PatchUsingInstallerPatch();
+				}
+
 				if( comms.Cancel )
 					return PatchResult.Failed;
 
-				if( canRepair )
-				{
-					canRepair = false;
-
-					if( !PatchUsingRepair() )
-						return PatchResult.Failed;
-				}
-				else
+				if( success )
+					break;
+				else if( i == preferredPatchMethods.Count - 1 )
 					return PatchResult.Failed;
 			}
 
@@ -614,11 +703,11 @@ namespace SimplePatchToolCore
 
 			if( !CheckLocalFilesUpToDate( false, comms.SelfPatching ) )
 			{
-				if( patchMethod == PatchMethod.IncrementalPatch && canRepair )
-				{
-					comms.Log( Localization.Get( StringId.SomeFilesAreStillNotUpToDate ) );
+				comms.Log( Localization.Get( StringId.SomeFilesAreStillNotUpToDate ) );
 
-					if( !PatchUsingRepair() )
+				if( canRepairPatch )
+				{
+					if( !PatchUsingRepairPatch() )
 						return PatchResult.Failed;
 				}
 				else
@@ -649,8 +738,6 @@ namespace SimplePatchToolCore
 				}
 				else
 					comms.Log( Localization.Get( StringId.NoObsoleteFiles ) );
-
-				comms.DisposeFileLogger(); // Can't delete CachePath while a StreamWriter is still open inside
 
 				PatchUtils.DeleteDirectory( comms.CachePath );
 			}
@@ -688,7 +775,7 @@ namespace SimplePatchToolCore
 					sb.Append( separator ).Append( PatchParameters.SELF_PATCH_MOVE_OP );
 					for( int i = 0; i < incrementalPatchesInfo.Count; i++ )
 					{
-						PatchInfo incrementalPatch = incrementalPatchesInfo[i];
+						IncrementalPatchInfo incrementalPatch = incrementalPatchesInfo[i];
 						for( int j = 0; j < incrementalPatch.RenamedFiles.Count; j++ )
 						{
 							PatchRenamedItem renamedItem = incrementalPatch.RenamedFiles[j];
@@ -729,7 +816,7 @@ namespace SimplePatchToolCore
 						if( File.Exists( absolutePath ) )
 							File.Delete( absolutePath );
 						else if( Directory.Exists( absolutePath ) )
-							Directory.Delete( absolutePath );
+							PatchUtils.DeleteDirectory( absolutePath );
 					}
 					else
 						sb.Append( separator ).Append( absolutePath );
@@ -748,7 +835,7 @@ namespace SimplePatchToolCore
 		private bool FetchVersionInfo()
 		{
 			string versionInfoXML = comms.DownloadManager.DownloadTextFromURL( versionInfoURL );
-			if( versionInfoXML == null )
+			if( string.IsNullOrEmpty( versionInfoXML ) )
 			{
 				FailReason = PatchFailReason.DownloadError;
 				FailDetails = Localization.Get( StringId.E_VersionInfoCouldNotBeDownloaded );
@@ -768,8 +855,10 @@ namespace SimplePatchToolCore
 			{
 				comms.VersionInfo = PatchUtils.DeserializeXMLToVersionInfo( versionInfoXML );
 			}
-			catch
+			catch( Exception e )
 			{
+				comms.LogToFile( e );
+
 				FailReason = PatchFailReason.XmlDeserializeError;
 				FailDetails = Localization.Get( StringId.E_VersionInfoInvalid );
 
@@ -799,13 +888,12 @@ namespace SimplePatchToolCore
 			return true;
 		}
 
-		private bool PatchUsingRepair()
+		private bool PatchUsingRepairPatch()
 		{
 			if( comms.Cancel )
 				return false;
 
-			PatchResult repairResult = new RepairApplier( comms ).Run();
-			if( repairResult == PatchResult.Failed )
+			if( new RepairPatchApplier( comms ).Run() == PatchResult.Failed )
 				return false;
 
 			return true;
@@ -833,24 +921,27 @@ namespace SimplePatchToolCore
 					if( !comms.DownloadManager.FileExistsAtUrl( comms.VersionInfo.GetInfoURLFor( incrementalPatch ), out fileSize ) )
 					{
 						FailReason = PatchFailReason.FileDoesNotExistOnServer;
-						FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION );
+						FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_INFO_EXTENSION );
 
 						return false;
 					}
 
-					if( !comms.DownloadManager.FileExistsAtUrl( comms.VersionInfo.GetDownloadURLFor( incrementalPatch ), out fileSize ) )
+					if( incrementalPatch.Files > 0 )
 					{
-						FailReason = PatchFailReason.FileDoesNotExistOnServer;
-						FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION );
+						if( !comms.DownloadManager.FileExistsAtUrl( comms.VersionInfo.GetDownloadURLFor( incrementalPatch ), out fileSize ) )
+						{
+							FailReason = PatchFailReason.FileDoesNotExistOnServer;
+							FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, incrementalPatch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_FILE_EXTENSION );
 
-						return false;
-					}
-					else if( fileSize > 0L && fileSize != incrementalPatch.PatchSize )
-					{
-						FailReason = PatchFailReason.FileIsNotValidOnServer;
-						FailDetails = Localization.Get( StringId.E_FileXIsNotValidOnServer, incrementalPatch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION );
+							return false;
+						}
+						else if( fileSize > 0L && fileSize != incrementalPatch.PatchSize )
+						{
+							FailReason = PatchFailReason.FileIsNotValidOnServer;
+							FailDetails = Localization.Get( StringId.E_FileXIsNotValidOnServer, incrementalPatch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_FILE_EXTENSION );
 
-						return false;
+							return false;
+						}
 					}
 				}
 			}
@@ -878,13 +969,15 @@ namespace SimplePatchToolCore
 					return false;
 				}
 
-				PatchInfo patchInfo;
+				IncrementalPatchInfo patchInfo;
 				try
 				{
-					patchInfo = PatchUtils.DeserializeXMLToPatchInfo( patchInfoXML );
+					patchInfo = PatchUtils.DeserializeXMLToIncrementalPatchInfo( patchInfoXML );
 				}
-				catch
+				catch( Exception e )
 				{
+					comms.LogToFile( e );
+
 					FailReason = PatchFailReason.XmlDeserializeError;
 					FailDetails = Localization.Get( StringId.E_InvalidPatchInfoX, incrementalPatch.PatchVersionBrief() );
 
@@ -902,10 +995,42 @@ namespace SimplePatchToolCore
 				if( currentVersion > incrementalPatch.FromVersion )
 					continue;
 
-				PatchResult patchResult = new IncrementalPatchApplier( comms, patchInfo ).Run();
-				if( patchResult == PatchResult.Failed )
+				if( new IncrementalPatchApplier( comms, patchInfo ).Run() == PatchResult.Failed )
 					return false;
 			}
+
+			return true;
+		}
+
+		private bool PatchUsingInstallerPatch()
+		{
+			if( comms.Cancel )
+				return false;
+
+			if( comms.VerifyFiles )
+			{
+				PatchStage = PatchStage.VerifyingFilesOnServer;
+
+				InstallerPatch installerPatch = comms.VersionInfo.InstallerPatch;
+				long fileSize;
+				if( !comms.DownloadManager.FileExistsAtUrl( comms.VersionInfo.GetDownloadURLFor( installerPatch ), out fileSize ) )
+				{
+					FailReason = PatchFailReason.FileDoesNotExistOnServer;
+					FailDetails = Localization.Get( StringId.E_FileXDoesNotExistOnServer, PatchParameters.INSTALLER_PATCH_FILENAME );
+
+					return false;
+				}
+				else if( fileSize > 0L && fileSize != installerPatch.PatchSize )
+				{
+					FailReason = PatchFailReason.FileIsNotValidOnServer;
+					FailDetails = Localization.Get( StringId.E_FileXIsNotValidOnServer, PatchParameters.INSTALLER_PATCH_FILENAME );
+
+					return false;
+				}
+			}
+
+			if( new InstallerPatchApplier( comms ).Run() == PatchResult.Failed )
+				return false;
 
 			return true;
 		}
@@ -923,7 +1048,7 @@ namespace SimplePatchToolCore
 			return true;
 		}
 
-		private bool CheckLocalFilesUpToDate( bool checkDeletedFiles, bool searchSelfPatchFiles )
+		private bool CheckLocalFilesUpToDate( bool checkObsoleteFiles, bool searchSelfPatchFiles )
 		{
 			comms.Log( Localization.Get( StringId.CheckingIfFilesAreUpToDate ) );
 
@@ -946,7 +1071,7 @@ namespace SimplePatchToolCore
 			}
 
 			// Check if there are any obsolete files
-			return !checkDeletedFiles || FindFilesToDelete( comms.RootPath ).Count == 0;
+			return !checkObsoleteFiles || FindFilesToDelete( comms.RootPath ).Count == 0;
 		}
 
 		private List<string> FindFilesToDelete( string rootPath )

@@ -41,13 +41,13 @@ namespace SimplePatchToolCore
 			return null;
 		}
 
-		public void ReadXml( XmlReader reader )
+		void IXmlSerializable.ReadXml( XmlReader reader )
 		{
 			parts = ParseVersionString( reader.ReadString() );
 			reader.Read(); // Read the closing tag
 		}
 
-		public void WriteXml( XmlWriter writer )
+		void IXmlSerializable.WriteXml( XmlWriter writer )
 		{
 			writer.WriteString( ToString() );
 		}

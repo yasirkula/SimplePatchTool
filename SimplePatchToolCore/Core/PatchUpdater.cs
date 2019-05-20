@@ -28,11 +28,20 @@ namespace SimplePatchToolCore
 			if( !PatchUtils.CheckWriteAccessToFolder( Path.GetDirectoryName( versionInfoPath ) ) )
 				throw new UnauthorizedAccessException( Localization.Get( StringId.E_AccessToXIsForbiddenRunInAdminMode, versionInfoPath ) );
 
-			this.versionInfoPath = versionInfoPath;
-			VersionInfo = PatchUtils.GetVersionInfoFromPath( versionInfoPath );
+			try
+			{
+				VersionInfo = PatchUtils.GetVersionInfoFromPath( versionInfoPath );
+			}
+			catch( Exception e )
+			{
+				if( logger != null )
+					logger( e.ToString() );
+			}
+
 			if( VersionInfo == null )
 				throw new InvalidOperationException( Localization.Get( StringId.E_VersionInfoCouldNotBeDeserializedFromX, versionInfoPath ) );
 
+			this.versionInfoPath = versionInfoPath;
 			Logger = logger;
 		}
 
@@ -43,10 +52,13 @@ namespace SimplePatchToolCore
 			{
 				downloadLinksRaw = File.ReadAllText( downloadLinksPath );
 			}
-			catch
+			catch( Exception e )
 			{
 				if( Logger != null )
+				{
+					Logger( e.ToString() );
 					Logger( Localization.Get( StringId.E_CouldNotReadDownloadLinksFromX, downloadLinksPath ) );
+				}
 
 				return false;
 			}
@@ -90,6 +102,7 @@ namespace SimplePatchToolCore
 			}
 
 			int updateCount = 0;
+			int totalCount = VersionInfo.Files.Count + VersionInfo.IncrementalPatches.Count;
 			for( int i = 0; i < VersionInfo.Files.Count; i++ )
 			{
 				VersionItem item = VersionInfo.Files[i];
@@ -97,21 +110,21 @@ namespace SimplePatchToolCore
 				string downloadLink;
 				string relativePath = item.Path.Replace( PatchUtils.AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
 				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
-					downloadLinks.TryGetValue( relativePath + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) ||
+					downloadLinks.TryGetValue( relativePath + PatchParameters.REPAIR_PATCH_FILE_EXTENSION, out downloadLink ) ||
 					downloadLinks.TryGetValue( PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) ||
-					downloadLinks.TryGetValue( PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath + PatchParameters.COMPRESSED_FILE_EXTENSION, out downloadLink ) )
+					downloadLinks.TryGetValue( PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath + PatchParameters.REPAIR_PATCH_FILE_EXTENSION, out downloadLink ) )
 				{
 					item.DownloadURL = downloadLink;
 					updateCount++;
 				}
 			}
 
-			for( int i = 0; i < VersionInfo.Patches.Count; i++ )
+			for( int i = 0; i < VersionInfo.IncrementalPatches.Count; i++ )
 			{
-				IncrementalPatch patch = VersionInfo.Patches[i];
+				IncrementalPatch patch = VersionInfo.IncrementalPatches[i];
 
 				string downloadLink;
-				string relativePath = patch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION;
+				string relativePath = patch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_FILE_EXTENSION;
 				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
 					downloadLinks.TryGetValue( PatchParameters.INCREMENTAL_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) )
 				{
@@ -119,17 +132,34 @@ namespace SimplePatchToolCore
 					updateCount++;
 				}
 
-				relativePath = patch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION;
+				relativePath = patch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_INFO_EXTENSION;
 				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
 					downloadLinks.TryGetValue( PatchParameters.INCREMENTAL_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) )
 				{
 					patch.InfoURL = downloadLink;
 					updateCount++;
 				}
+
+				if( patch.Files > 0 )
+					totalCount++;
+			}
+
+			if( VersionInfo.InstallerPatch.PatchSize > 0L || !string.IsNullOrEmpty( VersionInfo.InstallerPatch.PatchMd5Hash ) )
+			{
+				string downloadLink;
+				string relativePath = PatchParameters.INSTALLER_PATCH_FILENAME;
+				if( downloadLinks.TryGetValue( relativePath, out downloadLink ) ||
+					downloadLinks.TryGetValue( PatchParameters.INSTALLER_PATCH_DIRECTORY + Path.DirectorySeparatorChar + relativePath, out downloadLink ) )
+				{
+					VersionInfo.InstallerPatch.DownloadURL = downloadLink;
+					updateCount++;
+				}
+
+				totalCount++;
 			}
 
 			if( Logger != null )
-				Logger( Localization.Get( StringId.XDownloadLinksAreUpdatedSuccessfully, updateCount, updateCount <= VersionInfo.Files.Count ? VersionInfo.Files.Count : updateCount ) );
+				Logger( Localization.Get( StringId.XDownloadLinksAreUpdatedSuccessfully, updateCount, totalCount ) );
 
 			return true;
 		}

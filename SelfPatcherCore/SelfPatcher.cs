@@ -9,11 +9,11 @@ namespace SelfPatcherCore
 	{
 		private enum Op { Delete, Move };
 
+		private const int WARMUP_TIME = 2000;
+
 		private const string OP_SEPARATOR = "><";
 		private const string DELETE_OP = "_#DELETE#_";
 		private const string MOVE_OP = "_#MOVE#_";
-
-		public const int VERSION = 1;
 
 		private readonly ISelfPatcherListener listener;
 		private string postSelfPatcher;
@@ -70,11 +70,11 @@ namespace SelfPatcherCore
 					return;
 				}
 
-				try
-				{
-					listener.OnLogAppeared( string.Concat( "Updating from v", instructions.Substring( 0, tokenEnd ), ", please don't close this window!" ) );
-				}
-				catch { }
+				Log( string.Concat( "Updating from v", instructions.Substring( 0, tokenEnd ), ", please don't close this window!" ) );
+
+				// Wait for a while before starting the self patch (some files might still be blocked/in use/not released
+				// for a couple of milliseconds immediately after the self patcher is started)
+				Thread.Sleep( WARMUP_TIME );
 
 				int numberOfInstructions = 0;
 				while( tokenStart < instructions.Length )
@@ -157,12 +157,7 @@ namespace SelfPatcherCore
 					}
 				}
 
-				try
-				{
-					listener.OnLogAppeared( "Successful..!" );
-				}
-				catch { }
-
+				Log( "Successful..!" );
 				listener.OnSuccess();
 			}
 			catch( Exception e )
@@ -176,17 +171,11 @@ namespace SelfPatcherCore
 			if( !string.IsNullOrEmpty( postSelfPatcher ) )
 			{
 				if( !File.Exists( postSelfPatcher ) )
-				{
-					try
-					{
-						listener.OnLogAppeared( "ERROR: post update executable does not exist" );
-					}
-					catch { }
-				}
+					Log( "ERROR: post update executable does not exist" );
 				else
 				{
 					FileInfo executable = new FileInfo( postSelfPatcher );
-					Process.Start( new ProcessStartInfo( executable.Name ) { WorkingDirectory = executable.DirectoryName } );
+					Process.Start( new ProcessStartInfo( executable.FullName ) { WorkingDirectory = executable.DirectoryName } );
 				}
 			}
 
@@ -223,6 +212,15 @@ namespace SelfPatcherCore
 		#endregion
 
 		#region Utilities
+		private void Log( string log )
+		{
+			try
+			{
+				listener.OnLogAppeared( log );
+			}
+			catch { }
+		}
+
 		private void CopyFile( string from, string to )
 		{
 			while( true )
@@ -235,12 +233,7 @@ namespace SelfPatcherCore
 				catch( IOException e )
 				{
 					// Keep checking the status of the file with 0.5s interval until it is released
-					try
-					{
-						listener.OnLogAppeared( e.Message + ", retrying in 0.5 seconds: " + to );
-					}
-					catch { }
-
+					Log( e.Message + ", retrying in 0.5 seconds: " + to );
 					Thread.Sleep( 500 );
 				}
 			}
@@ -270,7 +263,7 @@ namespace SelfPatcherCore
 			for( int i = 0; i < files.Length; i++ )
 			{
 				FileInfo fileInfo = files[i];
-				fileInfo.CopyTo( toAbsolutePath + fileInfo.Name, true );
+				CopyFile( fileInfo.FullName, toAbsolutePath + fileInfo.Name );
 			}
 
 			DirectoryInfo[] subDirectories = fromDir.GetDirectories();
@@ -294,7 +287,7 @@ namespace SelfPatcherCore
 			{
 				// Deleting a directory immediately after deleting a file inside it can sometimes
 				// throw IOException; in such cases, waiting for a short time should resolve the issue
-				for( int i = 4; i >= 0; i-- )
+				for( int i = 8; i >= 0; i-- )
 				{
 					if( i > 0 )
 					{

@@ -16,7 +16,7 @@ namespace SimplePatchToolCore
 			set
 			{
 				if( !PatchUtils.IsProjectNameValid( value ) )
-					throw new FormatException( Localization.Get( StringId.E_ProjectNameContainsInvalidCharacters ) );
+					throw new FormatException( Localization.Get( StringId.E_XContainsInvalidCharacters, "'Name'" ) );
 
 				m_name = value;
 			}
@@ -27,7 +27,10 @@ namespace SimplePatchToolCore
 
 		public VersionCode Version;
 
-		public List<IncrementalPatch> Patches;
+		[XmlArray( ElementName = "Patches" )]
+		public List<IncrementalPatch> IncrementalPatches;
+		public InstallerPatch InstallerPatch;
+
 		public List<string> IgnoredPaths;
 		public List<VersionItem> Files;
 
@@ -41,7 +44,9 @@ namespace SimplePatchToolCore
 			BaseDownloadURL = "";
 			MaintenanceCheckURL = "";
 
-			Patches = new List<IncrementalPatch>();
+			IncrementalPatches = new List<IncrementalPatch>();
+			InstallerPatch = new InstallerPatch();
+
 			IgnoredPaths = new List<string>();
 			Files = new List<VersionItem>();
 		}
@@ -52,7 +57,18 @@ namespace SimplePatchToolCore
 				return item.DownloadURL;
 
 			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
-				return BaseDownloadURL + PatchParameters.REPAIR_PATCH_DIRECTORY + '/' + item.Path.Replace( '\\', '/' ) + PatchParameters.COMPRESSED_FILE_EXTENSION;
+				return BaseDownloadURL + PatchParameters.REPAIR_PATCH_DIRECTORY + '/' + item.Path.Replace( '\\', '/' ) + PatchParameters.REPAIR_PATCH_FILE_EXTENSION;
+
+			return null;
+		}
+
+		public string GetDownloadURLFor( InstallerPatch patch )
+		{
+			if( !string.IsNullOrEmpty( patch.DownloadURL ) )
+				return patch.DownloadURL;
+
+			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
+				return BaseDownloadURL + PatchParameters.INSTALLER_PATCH_DIRECTORY + '/' + PatchParameters.INSTALLER_PATCH_FILENAME;
 
 			return null;
 		}
@@ -63,7 +79,7 @@ namespace SimplePatchToolCore
 				return patch.DownloadURL;
 
 			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
-				return BaseDownloadURL + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + '/' + patch.PatchVersion() + PatchParameters.PATCH_FILE_EXTENSION;
+				return BaseDownloadURL + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + '/' + patch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_FILE_EXTENSION;
 
 			return null;
 		}
@@ -74,7 +90,7 @@ namespace SimplePatchToolCore
 				return patch.InfoURL;
 
 			if( !string.IsNullOrEmpty( BaseDownloadURL ) )
-				return BaseDownloadURL + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + '/' + patch.PatchVersion() + PatchParameters.PATCH_INFO_EXTENSION;
+				return BaseDownloadURL + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + '/' + patch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_INFO_EXTENSION;
 
 			return null;
 		}
@@ -133,6 +149,9 @@ namespace SimplePatchToolCore
 		public VersionCode ToVersion;
 
 		[XmlAttribute]
+		public int Files;
+
+		[XmlAttribute]
 		public long PatchSize;
 
 		[XmlAttribute]
@@ -148,19 +167,47 @@ namespace SimplePatchToolCore
 		{
 			FromVersion = new VersionCode( 0, 0 );
 			ToVersion = new VersionCode( 0, 0 );
+			Files = 0;
 			PatchSize = 0L;
 			PatchMd5Hash = "";
 			InfoURL = "";
 			DownloadURL = "";
 		}
 
-		public IncrementalPatch( VersionCode fromVersion, VersionCode toVersion, FileInfo patchFile )
+		public IncrementalPatch( VersionCode fromVersion, VersionCode toVersion, FileInfo patchFile, int numberOfFiles )
 		{
 			FromVersion = fromVersion;
 			ToVersion = toVersion;
+			Files = numberOfFiles;
 			PatchSize = patchFile.Length;
 			PatchMd5Hash = patchFile.Md5Hash();
 			InfoURL = "";
+			DownloadURL = "";
+		}
+	}
+
+	public class InstallerPatch
+	{
+		[XmlAttribute]
+		public long PatchSize;
+
+		[XmlAttribute]
+		public string PatchMd5Hash;
+
+		[XmlAttribute]
+		public string DownloadURL;
+
+		public InstallerPatch()
+		{
+			PatchSize = 0L;
+			PatchMd5Hash = "";
+			DownloadURL = "";
+		}
+
+		public InstallerPatch( FileInfo patchFile )
+		{
+			PatchSize = patchFile.Length;
+			PatchMd5Hash = patchFile.Md5Hash();
 			DownloadURL = "";
 		}
 	}

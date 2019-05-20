@@ -1,10 +1,14 @@
 ﻿using ICSharpCode.SharpZipLib.Tar;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using Compression = SevenZip.Compression;
 
 namespace SimplePatchToolCore
 {
+	public enum CompressionFormat { LZMA = 0, GZIP = 1 };
+
 	public static class ZipUtils
 	{
 		// Compress a file into LZMA format
@@ -50,6 +54,11 @@ namespace SimplePatchToolCore
 
 		public static void CompressFolderLZMA( string inFolder, string outFile )
 		{
+			CompressFolderLZMA( inFolder, outFile, new List<Regex>( 0 ) );
+		}
+
+		internal static void CompressFolderLZMA( string inFolder, string outFile, List<Regex> ignoredPathsRegex )
+		{
 			string tarFilePath = outFile + "tmptar";
 
 			// Source: https://github.com/icsharpcode/SharpZipLib/wiki/GZip-and-Tar-Samples#-create-a-tgz-targz
@@ -63,7 +72,7 @@ namespace SimplePatchToolCore
 					inFolder = inFolder.Replace( '\\', '/' );
 
 				tarArchive.RootPath = inFolder;
-				CreateTarRecursive( tarArchive, inFolder );
+				CreateTarRecursive( tarArchive, new DirectoryInfo( inFolder ), "", ignoredPathsRegex );
 			}
 
 			CompressFileLZMA( tarFilePath, outFile );
@@ -86,21 +95,29 @@ namespace SimplePatchToolCore
 		}
 
 		// Source: https://github.com/icsharpcode/SharpZipLib/wiki/GZip-and-Tar-Samples#-create-a-tgz-targz
-		private static void CreateTarRecursive( TarArchive tarArchive, string inFolder )
+		private static void CreateTarRecursive( TarArchive tarArchive, DirectoryInfo directory, string relativePath, List<Regex> ignoredPathsRegex )
 		{
-			TarEntry tarEntry = TarEntry.CreateEntryFromFile( inFolder );
+			TarEntry tarEntry = TarEntry.CreateEntryFromFile( directory.FullName );
 			tarArchive.WriteEntry( tarEntry, false );
-			
-			string[] files = Directory.GetFiles( inFolder );
+
+			FileInfo[] files = directory.GetFiles();
 			for( int i = 0; i < files.Length; i++ )
 			{
-				tarEntry = TarEntry.CreateEntryFromFile( files[i] );
-				tarArchive.WriteEntry( tarEntry, true );
+				string fileRelativePath = relativePath + files[i].Name;
+				if( !ignoredPathsRegex.PathMatchesPattern( fileRelativePath ) )
+				{
+					tarEntry = TarEntry.CreateEntryFromFile( files[i].FullName );
+					tarArchive.WriteEntry( tarEntry, true );
+				}
 			}
-			
-			string[] subDirectories = Directory.GetDirectories( inFolder );
+
+			DirectoryInfo[] subDirectories = directory.GetDirectories();
 			for( int i = 0; i < subDirectories.Length; i++ )
-				CreateTarRecursive( tarArchive, subDirectories[i] );
+			{
+				string directoryRelativePath = relativePath + subDirectories[i].Name + Path.DirectorySeparatorChar;
+				if( !ignoredPathsRegex.PathMatchesPattern( directoryRelativePath ) )
+					CreateTarRecursive( tarArchive, subDirectories[i], directoryRelativePath, ignoredPathsRegex );
+			}
 		}
 	}
 }

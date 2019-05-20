@@ -4,16 +4,13 @@ using System.IO;
 
 namespace SimplePatchToolCore
 {
-	internal class RepairApplier
+	internal class RepairPatchApplier : PatchMethodBase
 	{
-		private readonly PatchIntercomms comms;
-
-		public RepairApplier( PatchIntercomms comms )
+		public RepairPatchApplier( PatchIntercomms comms ) : base( comms )
 		{
-			this.comms = comms;
 		}
 
-		public PatchResult Run()
+		protected override PatchResult Execute()
 		{
 			if( comms.Cancel )
 				return PatchResult.Failed;
@@ -26,7 +23,7 @@ namespace SimplePatchToolCore
 			comms.Stage = PatchStage.CalculatingFilesToUpdate;
 
 			comms.Log( Localization.Get( StringId.CalculatingNewOrChangedFiles ) );
-			List<VersionItem> filesToUpdate = FindFilesToUpdate();
+			List<VersionItem> filesToUpdate = comms.FindFilesToUpdate();
 
 			if( filesToUpdate.Count == 0 )
 				return PatchResult.AlreadyUpToDate;
@@ -39,6 +36,12 @@ namespace SimplePatchToolCore
 
 			if( comms.Cancel )
 				return PatchResult.Failed;
+
+			long estimatedDownloadSize = 0L;
+			for( int i = 0; i < filesToDownload.Count; i++ )
+				estimatedDownloadSize += filesToDownload[i].CompressedFileSize;
+
+			InitializeProgress( filesToUpdate.Count, estimatedDownloadSize );
 
 			if( filesToDownload.Count > 0 && comms.VerifyFiles )
 			{
@@ -88,33 +91,6 @@ namespace SimplePatchToolCore
 			return PatchResult.Success;
 		}
 
-		private List<VersionItem> FindFilesToUpdate()
-		{
-			List<VersionItem> versionInfoFiles = comms.VersionInfo.Files;
-			List<VersionItem> result = new List<VersionItem>();
-			for( int i = 0; i < versionInfoFiles.Count; i++ )
-			{
-				if( comms.Cancel )
-					return null;
-
-				VersionItem item = versionInfoFiles[i];
-				FileInfo localFile = new FileInfo( comms.RootPath + item.Path );
-				if( localFile.Exists && localFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
-					continue;
-
-				if( comms.SelfPatching )
-				{
-					FileInfo decompressedFile = new FileInfo( comms.DecompressedFilesPath + item.Path );
-					if( decompressedFile.Exists && decompressedFile.MatchesSignature( item.FileSize, item.Md5Hash ) )
-						continue;
-				}
-
-				result.Add( item );
-			}
-
-			return result;
-		}
-
 		private List<VersionItem> FindFilesToDownload( List<VersionItem> filesToUpdate )
 		{
 			List<VersionItem> result = new List<VersionItem>();
@@ -134,6 +110,8 @@ namespace SimplePatchToolCore
 
 		private bool DownloadAndUpdateFiles( List<VersionItem> filesToDownload, List<VersionItem> filesToUpdate )
 		{
+			string rootPath = comms.SelfPatching ? comms.DecompressedFilesPath : comms.RootPath;
+
 			for( int i = 0, j = 0; i < filesToUpdate.Count; i++ )
 			{
 				if( comms.Cancel )
@@ -177,13 +155,14 @@ namespace SimplePatchToolCore
 					return false;
 
 				comms.Stage = PatchStage.UpdatingFiles;
+				comms.Log( Localization.Get( StringId.UpdatingXthFile, i + 1, filesToUpdate.Count, item.Path ) );
 
-				string rootPath = comms.SelfPatching ? comms.DecompressedFilesPath : comms.RootPath;
 				string targetAbsolutePath = rootPath + item.Path;
 				Directory.CreateDirectory( Path.GetDirectoryName( targetAbsolutePath ) );
 				ZipUtils.DecompressFileLZMA( downloadAbsolutePath, targetAbsolutePath );
 
 				File.Delete( downloadAbsolutePath );
+				ReportProgress( 1, 0L );
 			}
 
 			return true;

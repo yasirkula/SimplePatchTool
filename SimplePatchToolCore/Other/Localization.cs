@@ -7,6 +7,9 @@ namespace SimplePatchToolCore
 	{
 		AllFilesAreDownloadedInXSeconds,
 		AlreadyUpToDateXthFile,
+		ApplyingIncrementalPatch,
+		ApplyingInstallerPatch,
+		ApplyingRepairPatch,
 		AppIsUpToDate,
 		CalculatingDiffOfX,
 		CalculatingFilesToDownload,
@@ -22,6 +25,8 @@ namespace SimplePatchToolCore
 		CompressionRatioIsX,
 		CopyingXToPatch,
 		CreatingIncrementalPatch,
+		CreatingIncrementalPatchX,
+		CreatingInstallerPatch,
 		CreatingRepairPatch,
 		CreatingXthFile,
 		DecompressingPatchX,
@@ -33,15 +38,19 @@ namespace SimplePatchToolCore
 		DownloadingXProgressInfo,
 		DownloadingXthFile,
 		E_AccessToXIsForbiddenRunInAdminMode,
+		E_AnotherInstanceOfXIsRunning,
 		E_CouldNotDownloadPatchInfoX,
 		E_CouldNotReadDownloadLinksFromX,
 		E_DiffOfXDoesNotExist,
+		E_DirectoryXIsEmpty,
 		E_DirectoryXIsNotEmpty,
+		E_DirectoryXMissing,
 		E_DownloadedFileXIsCorrupt,
 		E_DownloadLinkXIsNotValid,
 		E_FilesAreNotUpToDateAfterPatch,
 		E_FileXDoesNotExistOnServer,
 		E_FileXIsNotValidOnServer,
+		E_FileXMissing,
 		E_InsufficientSpaceXNeededInY,
 		E_InvalidPatchInfoX,
 		E_NoSuitablePatchMethodFound,
@@ -49,7 +58,9 @@ namespace SimplePatchToolCore
 		E_PatchInfoDoesNotExistAtX,
 		E_PatchXCouldNotBeDownloaded,
 		E_PreviousVersionXIsNotLessThanY,
-		E_ProjectNameContainsInvalidCharacters,
+		E_ProjectInfoCouldNotBeDeserializedFromX,
+		E_ProjectInfoOutdated,
+		E_ProjectInvalid,
 		E_SelfPatcherDoesNotExist,
 		E_ServersUnderMaintenance,
 		E_VersionCodeXIsInvalid,
@@ -58,6 +69,7 @@ namespace SimplePatchToolCore
 		E_VersionInfoCouldNotBeVerified,
 		E_VersionInfoInvalid,
 		E_XCanNotBeEmpty,
+		E_XContainsInvalidCharacters,
 		E_XCouldNotBeDownloaded,
 		E_XDoesNotExist,
 		GeneratingListOfFilesInBuild,
@@ -66,6 +78,7 @@ namespace SimplePatchToolCore
 		PatchAppliedInXSeconds,
 		PatchCompletedInXSeconds,
 		PatchCreatedInXSeconds,
+		PatchMethodXSizeY,
 		ReadyToSelfPatch,
 		RenamingXFiles,
 		RetrievingVersionInfo,
@@ -195,6 +208,9 @@ namespace SimplePatchToolCore
 
 			Strings[StringId.AllFilesAreDownloadedInXSeconds] = "All files are successfully downloaded in {0} seconds";
 			Strings[StringId.AlreadyUpToDateXthFile] = "{0}/{1} Already up-to-date: {2}";
+			Strings[StringId.ApplyingIncrementalPatch] = "Applying incremental patch";
+			Strings[StringId.ApplyingInstallerPatch] = "Applying installer patch";
+			Strings[StringId.ApplyingRepairPatch] = "Applying repair patch";
 			Strings[StringId.AppIsUpToDate] = "...App is up-to-date...";
 			Strings[StringId.CalculatingDiffOfX] = "Calculating diff of {0}";
 			Strings[StringId.CalculatingFilesToDownload] = "...Calculating files to download...";
@@ -210,6 +226,8 @@ namespace SimplePatchToolCore
 			Strings[StringId.CompressionRatioIsX] = "Compression ratio is {0}%";
 			Strings[StringId.CopyingXToPatch] = "Copying {0} to patch";
 			Strings[StringId.CreatingIncrementalPatch] = "...Creating incremental patch...";
+			Strings[StringId.CreatingIncrementalPatchX] = "Creating incremental patch: {0}";
+			Strings[StringId.CreatingInstallerPatch] = "...Creating installer patch...";
 			Strings[StringId.CreatingRepairPatch] = "...Creating repair patch...";
 			Strings[StringId.CreatingXthFile] = "{0}/{1} Creating: {2}";
 			Strings[StringId.DecompressingPatchX] = "...Decompressing patch {0}...";
@@ -221,15 +239,19 @@ namespace SimplePatchToolCore
 			Strings[StringId.DownloadingXProgressInfo] = "Downloading {0}: {1}/{2}MB ({3})";
 			Strings[StringId.DownloadingXthFile] = "{0}/{1} Downloading: {2} ({3}MB)";
 			Strings[StringId.E_AccessToXIsForbiddenRunInAdminMode] = "ERROR: access to {0} is forbidden; run patcher in administrator mode";
+			Strings[StringId.E_AnotherInstanceOfXIsRunning] = "ERROR: another instance of {0} is running";
 			Strings[StringId.E_CouldNotDownloadPatchInfoX] = "ERROR: could not download patch info for {0}";
 			Strings[StringId.E_CouldNotReadDownloadLinksFromX] = "ERROR: could not read download links from {0}";
 			Strings[StringId.E_DiffOfXDoesNotExist] = "ERROR: patch file for {0} couldn't be found";
+			Strings[StringId.E_DirectoryXIsEmpty] = "ERROR: directory {0} is empty";
 			Strings[StringId.E_DirectoryXIsNotEmpty] = "ERROR: directory {0} is not empty";
+			Strings[StringId.E_DirectoryXMissing] = "ERROR: directory {0} is missing";
 			Strings[StringId.E_DownloadedFileXIsCorrupt] = "ERROR: downloaded file {0} is corrupt";
 			Strings[StringId.E_DownloadLinkXIsNotValid] = "ERROR: download link {0} is not in form [RelativePathToFile URL]";
 			Strings[StringId.E_FilesAreNotUpToDateAfterPatch] = "ERROR: files are not up-to-date after the patch";
 			Strings[StringId.E_FileXDoesNotExistOnServer] = "ERROR: file {0} does not exist on server";
 			Strings[StringId.E_FileXIsNotValidOnServer] = "ERROR: file {0} is not valid on server";
+			Strings[StringId.E_FileXMissing] = "ERROR: file {0} is missing";
 			Strings[StringId.E_InsufficientSpaceXNeededInY] = "ERROR: insufficient free space in {1}, at least {0} needed";
 			Strings[StringId.E_InvalidPatchInfoX] = "ERROR: patch info for {0} is invalid";
 			Strings[StringId.E_NoSuitablePatchMethodFound] = "ERROR: no suitable patch method found";
@@ -237,7 +259,9 @@ namespace SimplePatchToolCore
 			Strings[StringId.E_PatchInfoDoesNotExistAtX] = "ERROR: patch info does not exist at {0}";
 			Strings[StringId.E_PatchXCouldNotBeDownloaded] = "ERROR: patch {0} could not be downloaded";
 			Strings[StringId.E_PreviousVersionXIsNotLessThanY] = "ERROR: previous version ({0}) is greater than or equal to current version ({1})";
-			Strings[StringId.E_ProjectNameContainsInvalidCharacters] = "ERROR: 'projectName' contains invalid character(s)";
+			Strings[StringId.E_ProjectInfoCouldNotBeDeserializedFromX] = "ERROR: project info could not be deserialized from {0}";
+			Strings[StringId.E_ProjectInfoOutdated] = "ERROR: project info is outdated, its properties may have changed";
+			Strings[StringId.E_ProjectInvalid] = "ERROR: project is in invalid state. Create a new project to resolve the following issues:";
 			Strings[StringId.E_SelfPatcherDoesNotExist] = "ERROR: self patcher does not exist";
 			Strings[StringId.E_ServersUnderMaintenance] = "ERROR: servers are currently under maintenance";
 			Strings[StringId.E_VersionCodeXIsInvalid] = "ERROR: version code '{0}' is invalid";
@@ -246,6 +270,7 @@ namespace SimplePatchToolCore
 			Strings[StringId.E_VersionInfoCouldNotBeVerified] = "ERROR: could not verify downloaded version info";
 			Strings[StringId.E_VersionInfoInvalid] = "ERROR: version info is invalid";
 			Strings[StringId.E_XCanNotBeEmpty] = "ERROR: {0} can not be empty";
+			Strings[StringId.E_XContainsInvalidCharacters] = "ERROR: {0} contains invalid character(s)";
 			Strings[StringId.E_XCouldNotBeDownloaded] = "ERROR: {0} could not be downloaded";
 			Strings[StringId.E_XDoesNotExist] = "ERROR: {0} does not exist";
 			Strings[StringId.GeneratingListOfFilesInBuild] = "...Generating list of files in the build...";
@@ -254,10 +279,11 @@ namespace SimplePatchToolCore
 			Strings[StringId.PatchAppliedInXSeconds] = "...Patch applied in {0} seconds...";
 			Strings[StringId.PatchCompletedInXSeconds] = "...Patch successfully completed in {0} seconds...";
 			Strings[StringId.PatchCreatedInXSeconds] = "...Patch created in {0} seconds...";
+			Strings[StringId.PatchMethodXSizeY] = "Preferred patch method {0}: {1}";
 			Strings[StringId.ReadyToSelfPatch] = "...Waiting for the self patcher to complete the update...";
 			Strings[StringId.RenamingXFiles] = "...Renaming {0} files/folders...";
 			Strings[StringId.RetrievingVersionInfo] = "...Retrieving version info...";
-			Strings[StringId.SomeFilesAreStillNotUpToDate] = "...Some files are still not up-to-date, trying repair...";
+			Strings[StringId.SomeFilesAreStillNotUpToDate] = "...Some files are still not up-to-date, looking for solutions...";
 			Strings[StringId.UpdateAvailable] = "...New version available...";
 			Strings[StringId.UpdatingX] = "Updating {0}";
 			Strings[StringId.UpdatingXFiles] = "...Updating {0} file(s)...";
@@ -276,6 +302,9 @@ namespace SimplePatchToolCore
 
 			Strings[StringId.AllFilesAreDownloadedInXSeconds] = "Tüm dosyalar {0} saniyede başarılı bir şekilde indirildi";
 			Strings[StringId.AlreadyUpToDateXthFile] = "{0}/{1} Zaten güncel: {2}";
+			Strings[StringId.ApplyingIncrementalPatch] = "Incremental patch uygulanıyor";
+			Strings[StringId.ApplyingInstallerPatch] = "Installer patch uygulanıyor";
+			Strings[StringId.ApplyingRepairPatch] = "Repair patch uygulanıyor";
 			Strings[StringId.AppIsUpToDate] = "...Uygulama güncel...";
 			Strings[StringId.CalculatingDiffOfX] = "{0} dosyasının diff'i hesaplanıyor";
 			Strings[StringId.CalculatingFilesToDownload] = "...İndirilmesi gereken dosyalar hesaplanıyor...";
@@ -291,6 +320,8 @@ namespace SimplePatchToolCore
 			Strings[StringId.CompressionRatioIsX] = "Toplam sıkıştırma oranı: %{0}";
 			Strings[StringId.CopyingXToPatch] = "{0} patch'in içerisine kopyalanıyor";
 			Strings[StringId.CreatingIncrementalPatch] = "...Incremental patch oluşturuluyor...";
+			Strings[StringId.CreatingIncrementalPatchX] = "Incremental patch oluşturuluyor: {0}";
+			Strings[StringId.CreatingInstallerPatch] = "...Installer patch oluşturuluyor...";
 			Strings[StringId.CreatingRepairPatch] = "...Repair patch oluşturuluyor...";
 			Strings[StringId.CreatingXthFile] = "{0}/{1} Oluşturuluyor: {2}";
 			Strings[StringId.DecompressingPatchX] = "...Patch'in içerisindeki dosyalar çıkartılıyor: {0}...";
@@ -302,15 +333,19 @@ namespace SimplePatchToolCore
 			Strings[StringId.DownloadingXProgressInfo] = "{0} indiriliyor: {1}/{2}MB ({3})";
 			Strings[StringId.DownloadingXthFile] = "{0}/{1} İndiriliyor: {2} ({3}MB)";
 			Strings[StringId.E_AccessToXIsForbiddenRunInAdminMode] = "HATA: {0} konumuna erişim engellendi, uygulamayı yönetici olarak çalıştırın";
+			Strings[StringId.E_AnotherInstanceOfXIsRunning] = "HATA: birden çok {0} çalışıyor";
 			Strings[StringId.E_FilesAreNotUpToDateAfterPatch] = "HATA: patch sonrası dosyalar hâlâ güncel değil";
 			Strings[StringId.E_CouldNotDownloadPatchInfoX] = "HATA: {0} için patch bilgileri indirilemiyor";
 			Strings[StringId.E_CouldNotReadDownloadLinksFromX] = "HATA: indirme linkleri {0} dosyasından okunamadı";
 			Strings[StringId.E_DiffOfXDoesNotExist] = "HATA: {0} için patch dosyası bulunamadı";
+			Strings[StringId.E_DirectoryXIsEmpty] = "HATA: klasörün içi boş: {0}";
 			Strings[StringId.E_DirectoryXIsNotEmpty] = "HATA: klasörün içi boş değil: {0}";
+			Strings[StringId.E_DirectoryXMissing] = "HATA: klasör {0} mevcut değil";
 			Strings[StringId.E_DownloadedFileXIsCorrupt] = "HATA: indirilen dosya {0} bozuk";
 			Strings[StringId.E_DownloadLinkXIsNotValid] = "HATA: {0} şu formda değil: [DosyanınKonumu İndirmeLinki]";
 			Strings[StringId.E_FileXDoesNotExistOnServer] = "HATA: {0} dosyası sunucuda bulunamadı";
 			Strings[StringId.E_FileXIsNotValidOnServer] = "HATA: sunucudaki {0} dosyası bozuk";
+			Strings[StringId.E_FileXMissing] = "HATA: dosya {0} mevcut değil";
 			Strings[StringId.E_InsufficientSpaceXNeededInY] = "HATA: {1} diskinde yeterli boş yer yok, en az {0} gerekli";
 			Strings[StringId.E_InvalidPatchInfoX] = "HATA: {0} için patch bilgileri hatalı";
 			Strings[StringId.E_NoSuitablePatchMethodFound] = "HATA: uygulanacak uygun bir patch yöntemi bulunamadı";
@@ -318,7 +353,9 @@ namespace SimplePatchToolCore
 			Strings[StringId.E_PatchInfoDoesNotExistAtX] = "HATA: patch bilgileri {0} konumunda bulunamadı";
 			Strings[StringId.E_PatchXCouldNotBeDownloaded] = "HATA: patch {0} indirilemedi";
 			Strings[StringId.E_PreviousVersionXIsNotLessThanY] = "HATA: önceki sürümün versiyonu ({0}) mevcut versiyona ({1}) eşit veya daha büyük";
-			Strings[StringId.E_ProjectNameContainsInvalidCharacters] = "HATA: 'projectName' geçersiz karakter(ler) içermekte";
+			Strings[StringId.E_ProjectInfoCouldNotBeDeserializedFromX] = "HATA: {0} konumundaki proje bilgileri bozuk";
+			Strings[StringId.E_ProjectInfoOutdated] = "HATA: proje dosyasının formatı eskimiş";
+			Strings[StringId.E_ProjectInvalid] = "HATA: proje yapısı bozuk. Aşağıdaki hataları gidermek için yeni bir proje oluşturun:";
 			Strings[StringId.E_SelfPatcherDoesNotExist] = "HATA: oto-patch dosyası mevcut değil";
 			Strings[StringId.E_ServersUnderMaintenance] = "HATA: sunucular şu anda bakım modunda";
 			Strings[StringId.E_VersionCodeXIsInvalid] = "HATA: versiyon kodu '{0}' geçersiz";
@@ -327,6 +364,7 @@ namespace SimplePatchToolCore
 			Strings[StringId.E_VersionInfoCouldNotBeVerified] = "HATA: indirilen versiyon bilgileri doğrulanamıyor";
 			Strings[StringId.E_VersionInfoInvalid] = "HATA: versiyon bilgileri hatalı";
 			Strings[StringId.E_XCanNotBeEmpty] = "HATA: {0} boş bırakılamaz";
+			Strings[StringId.E_XContainsInvalidCharacters] = "HATA: {0} geçersiz karakter(ler) içermekte";
 			Strings[StringId.E_XCouldNotBeDownloaded] = "HATA: {0} indirilemedi";
 			Strings[StringId.E_XDoesNotExist] = "HATA: {0} bulunamadı";
 			Strings[StringId.GeneratingListOfFilesInBuild] = "...Versiyondaki dosyaların listesi çıkartılıyor...";
@@ -335,6 +373,7 @@ namespace SimplePatchToolCore
 			Strings[StringId.PatchAppliedInXSeconds] = "...Patch {0} saniyede tamamlandı...";
 			Strings[StringId.PatchCompletedInXSeconds] = "...Patch {0} saniyede başarıyla tamamlandı...";
 			Strings[StringId.PatchCreatedInXSeconds] = "...Patch {0} saniyede oluşturuldu...";
+			Strings[StringId.PatchMethodXSizeY] = "Tercih edilen patch yöntemi {0}: {1}";
 			Strings[StringId.ReadyToSelfPatch] = "...Uygulamanın kendini güncellemesi bekleniyor...";
 			Strings[StringId.RenamingXFiles] = "...{0} dosya veya klasörün ismi güncelleniyor...";
 			Strings[StringId.RetrievingVersionInfo] = "...Versiyon bilgileri alınıyor...";

@@ -57,6 +57,8 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PatchMethods\InstallerPatchApplier.cs" />
+    <Compile Include="Core\ProjectManager.cs" />
     <Compile Include="External\SharpZipLib\Core\Exceptions\SharpZipBaseException.cs" />
     <Compile Include="External\SharpZipLib\Core\Exceptions\StreamDecodingException.cs" />
     <Compile Include="External\SharpZipLib\Core\Exceptions\StreamUnsupportedException.cs" />
@@ -79,6 +81,8 @@
     <Compile Include="External\SharpZipLib\Tar\TarHeader.cs" />
     <Compile Include="External\SharpZipLib\Tar\TarInputStream.cs" />
     <Compile Include="External\SharpZipLib\Tar\TarOutputStream.cs" />
+    <Compile Include="PatchMethods\PatchMethodBase.cs" />
+    <Compile Include="Serialization\ProjectInfo.cs" />
     <Compile Include="Serialization\VersionCode.cs" />
     <Compile Include="External\7zip\Common\CommandLineParser.cs" />
     <Compile Include="External\7zip\Common\CRC.cs" />
@@ -134,12 +138,12 @@
     <Compile Include="Other\PatchDownloadManager.cs" />
     <Compile Include="Communications\PatchIntercomms.cs" />
     <Compile Include="Utilities\PatchUtils.cs" />
-    <Compile Include="Core\IncrementalPatchApplier.cs" />
-    <Compile Include="Serialization\PatchInfo.cs" />
+    <Compile Include="PatchMethods\IncrementalPatchApplier.cs" />
+    <Compile Include="Serialization\IncrementalPatchInfo.cs" />
     <Compile Include="Serialization\VersionInfo.cs" />
     <Compile Include="Utilities\PatchParameters.cs" />
     <Compile Include="Core\PatchCreator.cs" />
-    <Compile Include="Core\RepairApplier.cs" />
+    <Compile Include="PatchMethods\RepairPatchApplier.cs" />
     <Compile Include="Core\PatchUpdater.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\SimplePatchTool.cs" />

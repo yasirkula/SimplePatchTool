@@ -5,7 +5,7 @@ using System.Xml.Serialization;
 namespace SimplePatchToolCore
 {
 	[XmlRoot( "PatchInfo" )]
-	public class PatchInfo
+	public class IncrementalPatchInfo
 	{
 		[XmlIgnore]
 		public VersionCode FromVersion;
@@ -25,7 +25,7 @@ namespace SimplePatchToolCore
 		public List<PatchRenamedItem> RenamedFiles;
 		public List<PatchItem> Files;
 
-		public PatchInfo()
+		public IncrementalPatchInfo()
 		{
 			RenamedFiles = new List<PatchRenamedItem>();
 			Files = new List<PatchItem>();

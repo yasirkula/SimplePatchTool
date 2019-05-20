@@ -4,31 +4,26 @@ using System.Collections.Generic;
 
 namespace SimplePatchToolCore
 {
-	internal class IncrementalPatchApplier
+	internal class IncrementalPatchApplier : PatchMethodBase
 	{
-		private readonly PatchIntercomms comms;
-		private readonly PatchInfo patchInfo;
+		private readonly IncrementalPatchInfo patchInfo;
 
-		private readonly string patchDownloadPath;
-		private readonly string patchDecompressPath;
-
-		public IncrementalPatchApplier( PatchIntercomms comms, PatchInfo patchInfo )
+		public IncrementalPatchApplier( PatchIntercomms comms, IncrementalPatchInfo patchInfo ) : base( comms )
 		{
-			this.comms = comms;
 			this.patchInfo = patchInfo;
-
-			string patchVersion = patchInfo.PatchVersion();
-			patchDownloadPath = comms.GetDownloadPathForPatch( patchVersion );
-			patchDecompressPath = comms.GetDecompressPathForPatch( patchVersion );
 		}
 
-		public PatchResult Run()
+		protected override PatchResult Execute()
 		{
 			if( comms.Cancel )
 				return PatchResult.Failed;
 
 			if( comms.IsUnderMaintenance() )
 				return PatchResult.Failed;
+
+			string patchVersion = patchInfo.PatchVersion();
+			string patchDownloadPath = comms.GetDownloadPathForPatch( patchVersion );
+			string patchDecompressPath = comms.GetDecompressPathForPatch( patchVersion );
 
 			if( patchInfo.Files.Count > 0 )
 			{
@@ -38,6 +33,8 @@ namespace SimplePatchToolCore
 
 			if( comms.Cancel )
 				return PatchResult.Failed;
+
+			InitializeProgress( patchInfo.Files.Count, patchInfo.CompressedFileSize );
 
 			Stopwatch timer = Stopwatch.StartNew();
 
@@ -69,6 +66,8 @@ namespace SimplePatchToolCore
 					else
 						comms.Log( Localization.Get( StringId.XDownloadedInYSeconds, patchInfo.PatchVersion(), downloadTimer.ElapsedSeconds() ) );
 				}
+				else
+					ReportProgress( 0, patchInfo.CompressedFileSize );
 
 				if( comms.Cancel )
 					return PatchResult.Failed;
@@ -86,6 +85,8 @@ namespace SimplePatchToolCore
 				{
 					if( comms.Cancel )
 						return PatchResult.Failed;
+
+					ReportProgress( 1, 0L );
 
 					string fileRelativePath = patchInfo.Files[i].Path;
 					string diffFileAbsolutePath = patchDecompressPath + fileRelativePath;
@@ -148,7 +149,7 @@ namespace SimplePatchToolCore
 				comms.Log( Localization.Get( StringId.CreatingXthFile, patchItemIndex + 1, patchInfo.Files.Count, item.Path ) );
 
 				Directory.CreateDirectory( Path.GetDirectoryName( targetPath ) );
-				File.Copy( diffPath, targetPath, true );
+				PatchUtils.CopyFile( diffPath, targetPath );
 				File.Delete( diffPath );
 
 				return true;
@@ -175,7 +176,7 @@ namespace SimplePatchToolCore
 				return false;
 
 			Directory.CreateDirectory( Path.GetDirectoryName( targetPath ) );
-			File.Copy( tempOutputPath, targetPath, true );
+			PatchUtils.CopyFile( tempOutputPath, targetPath );
 			File.Delete( tempOutputPath );
 			File.Delete( diffPath );
 
@@ -184,12 +185,13 @@ namespace SimplePatchToolCore
 
 		private bool RenameItems( List<PatchRenamedItem> items )
 		{
+			string rootPath = comms.SelfPatching ? comms.DecompressedFilesPath : comms.RootPath;
+
 			for( int i = 0; i < items.Count; i++ )
 			{
 				if( comms.Cancel )
 					return false;
 
-				string rootPath = comms.SelfPatching ? comms.DecompressedFilesPath : comms.RootPath;
 				string fromAbsolutePath = rootPath + items[i].BeforePath;
 				string toAbsolutePath = rootPath + items[i].AfterPath;
 				if( File.Exists( fromAbsolutePath ) )
