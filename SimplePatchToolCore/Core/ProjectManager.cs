@@ -220,7 +220,7 @@ namespace SimplePatchToolCore
 				PatchUtils.CopyDirectory( selfPatcherPath, outputPath + PatchParameters.SELF_PATCHER_DIRECTORY );
 
 			patchCreator = new PatchCreator( latestVersion, tempOutput, projectInfo.Name, Path.GetFileName( latestVersion ) ).
-				AddIgnoredPaths( projectInfo.IgnoredPaths ).SilentMode( silentMode ).
+				AddIgnoredPaths( projectInfo.IgnoredPaths ).SetCompressionFormat( projectInfo.CompressionFormat ).SilentMode( silentMode ).
 				CreateRepairPatch( projectInfo.CreateRepairPatch ).CreateInstallerPatch( projectInfo.CreateInstallerPatch ).CreateIncrementalPatch( false ).
 				SetBaseDownloadURL( projectInfo.BaseDownloadURL ).SetMaintenanceCheckURL( projectInfo.MaintenanceCheckURL );
 
@@ -235,7 +235,7 @@ namespace SimplePatchToolCore
 				string versionInfoGenerated = tempIncrementalOutput + PatchParameters.VERSION_INFO_FILENAME;
 
 				patchCreator = new PatchCreator( latestVersion, tempIncrementalOutput, projectInfo.Name, Path.GetFileName( latestVersion ) ).
-					AddIgnoredPaths( projectInfo.IgnoredPaths ).SilentMode( silentMode ).
+					AddIgnoredPaths( projectInfo.IgnoredPaths ).SetCompressionFormat( projectInfo.CompressionFormat ).SilentMode( silentMode ).
 					CreateRepairPatch( false ).CreateInstallerPatch( false );
 
 				for( int i = versions.Length - 2; i >= 0; i-- )

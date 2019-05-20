@@ -75,7 +75,7 @@ namespace SimplePatchToolCore
 				comms.Stage = PatchStage.ExtractingFilesFromArchive;
 				comms.Log( Localization.Get( StringId.DecompressingPatchX, patchInfo.PatchVersion() ) );
 
-				ZipUtils.DecompressFolderLZMA( patchFile.FullName, patchDecompressPath );
+				ZipUtils.DecompressFolder( patchFile.FullName, patchDecompressPath, comms.VersionInfo.CompressionFormat );
 
 				comms.Stage = PatchStage.UpdatingFiles;
 				comms.Log( Localization.Get( StringId.UpdatingXFiles, patchInfo.Files.Count ) );

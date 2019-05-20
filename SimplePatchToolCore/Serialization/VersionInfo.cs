@@ -31,6 +31,8 @@ namespace SimplePatchToolCore
 		public List<IncrementalPatch> IncrementalPatches;
 		public InstallerPatch InstallerPatch;
 
+		public CompressionFormat CompressionFormat;
+
 		public List<string> IgnoredPaths;
 		public List<VersionItem> Files;
 
@@ -46,6 +48,8 @@ namespace SimplePatchToolCore
 
 			IncrementalPatches = new List<IncrementalPatch>();
 			InstallerPatch = new InstallerPatch();
+
+			CompressionFormat = CompressionFormat.LZMA;
 
 			IgnoredPaths = new List<string>();
 			Files = new List<VersionItem>();

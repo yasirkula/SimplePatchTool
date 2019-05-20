@@ -31,6 +31,8 @@ namespace SimplePatchToolCore
 		[XmlElement( ElementName = "CreateIncrementalPatchesFromEachPreviousVersionToNewVersion" )]
 		public bool CreateAllIncrementalPatches;
 
+		public CompressionFormat CompressionFormat;
+
 		public string BaseDownloadURL;
 		public string MaintenanceCheckURL;
 		public List<string> IgnoredPaths;
@@ -40,10 +42,14 @@ namespace SimplePatchToolCore
 		{
 			Version = LATEST_VERSION;
 			Name = "NewProject";
+
 			CreateRepairPatch = true;
 			CreateInstallerPatch = true;
 			CreateIncrementalPatch = true;
 			CreateAllIncrementalPatches = false;
+
+			CompressionFormat = CompressionFormat.LZMA;
+
 			BaseDownloadURL = "";
 			MaintenanceCheckURL = "";
 			IgnoredPaths = new List<string>() { "*" + PatchParameters.LOG_FILE_NAME };

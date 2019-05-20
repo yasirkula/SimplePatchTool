@@ -32,6 +32,8 @@ namespace SimplePatchToolCore
 		private HashSet<string> ignoredPaths;
 		private List<Regex> ignoredPathsRegex;
 
+		private CompressionFormat compressionFormat;
+
 		private string baseDownloadURL;
 		private string maintenanceCheckURL;
 
@@ -101,6 +103,8 @@ namespace SimplePatchToolCore
 
 			ignoredPaths = new HashSet<string>();
 			ignoredPathsRegex = new List<Regex>() { PatchUtils.WildcardToRegex( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ) }; // Ignore any version holder files
+
+			compressionFormat = CompressionFormat.LZMA;
 
 			baseDownloadURL = "";
 			maintenanceCheckURL = "";
@@ -215,6 +219,14 @@ namespace SimplePatchToolCore
 			return this;
 		}
 
+		public PatchCreator SetCompressionFormat( CompressionFormat compressionFormat )
+		{
+			if( !IsRunning )
+				this.compressionFormat = compressionFormat;
+
+			return this;
+		}
+
 		public PatchCreator SilentMode( bool silent )
 		{
 			silentMode = silent;
@@ -285,7 +297,8 @@ namespace SimplePatchToolCore
 				Name = projectName, // throws FormatException if 'projectName' contains invalid character(s)
 				Version = version,
 				BaseDownloadURL = baseDownloadURL,
-				MaintenanceCheckURL = maintenanceCheckURL
+				MaintenanceCheckURL = maintenanceCheckURL,
+				CompressionFormat = compressionFormat
 			};
 
 			PatchUtils.DeleteDirectory( outputPath );
@@ -349,7 +362,7 @@ namespace SimplePatchToolCore
 				compressTimer.Reset();
 				compressTimer.Start();
 
-				ZipUtils.CompressFileLZMA( fromAbsolutePath, toAbsolutePath );
+				ZipUtils.CompressFile( fromAbsolutePath, toAbsolutePath, compressionFormat );
 				Log( Localization.Get( StringId.CompressionFinishedInXSeconds, compressTimer.ElapsedSeconds() ) );
 
 				patchItem.OnCompressed( new FileInfo( toAbsolutePath ) );
@@ -385,7 +398,7 @@ namespace SimplePatchToolCore
 			Stopwatch timer = Stopwatch.StartNew();
 
 			Log( Localization.Get( StringId.CompressingXToY, rootPath, compressedPatchPath ) );
-			ZipUtils.CompressFolderLZMA( rootPath, compressedPatchPath, ignoredPathsRegex );
+			ZipUtils.CompressFolder( rootPath, compressedPatchPath, compressionFormat, ignoredPathsRegex );
 
 			if( cancel )
 				return PatchResult.Failed;
@@ -430,7 +443,7 @@ namespace SimplePatchToolCore
 
 			Log( Localization.Get( StringId.CompressingPatchIntoOneFile ) );
 			string compressedPatchPath = incrementalPatchOutputPath + incrementalPatch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_FILE_EXTENSION;
-			ZipUtils.CompressFolderLZMA( incrementalPatchTempPath, compressedPatchPath );
+			ZipUtils.CompressFolder( incrementalPatchTempPath, compressedPatchPath, compressionFormat );
 
 			Log( Localization.Get( StringId.WritingIncrementalPatchInfoToXML ) );
 			PatchUtils.SerializeIncrementalPatchInfoToXML( incrementalPatch, incrementalPatchOutputPath + incrementalPatch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_INFO_EXTENSION );

@@ -21,7 +21,7 @@ namespace SimplePatchToolCore
 
 		private long lastDownloadBytes;
 		private DateTime lastDownloadSpeedCalcTime;
-		private bool verifyDownloadSize;
+		//private bool verifyDownloadSize;
 
 		private string downloadStringResult;
 
@@ -279,12 +279,12 @@ namespace SimplePatchToolCore
 			{
 				url = PatchUtils.GetGoogleDriveDownloadLinkFromUrl( url );
 
-				verifyDownloadSize = false;
+				//verifyDownloadSize = false;
 				return DownloadGoogleDriveFileFromURLToPath( url, path );
 			}
 			else
 			{
-				verifyDownloadSize = true;
+				//verifyDownloadSize = true;
 				return DownloadFileFromURLToPathInternal( url, path );
 			}
 		}

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Compression = SevenZip.Compression;
 
@@ -11,53 +12,73 @@ namespace SimplePatchToolCore
 
 	public static class ZipUtils
 	{
-		// Compress a file into LZMA format
-		// Credit: http://stackoverflow.com/questions/7646328/how-to-use-the-7z-sdk-to-compress-and-decompress-a-file
-		public static void CompressFileLZMA( string inFile, string outFile )
+		public static void CompressFile( string inFile, string outFile, CompressionFormat format )
 		{
-			Compression.LZMA.Encoder coder = new Compression.LZMA.Encoder();
 			using( FileStream input = new FileStream( inFile, FileMode.Open, FileAccess.Read ) )
 			using( FileStream output = new FileStream( outFile, FileMode.Create ) )
 			{
-				// Write the encoder properties
-				coder.WriteCoderProperties( output );
+				if( format == CompressionFormat.LZMA )
+				{
+					// Credit: http://stackoverflow.com/questions/7646328/how-to-use-the-7z-sdk-to-compress-and-decompress-a-file
+					Compression.LZMA.Encoder coder = new Compression.LZMA.Encoder();
 
-				// Write the decompressed file size.
-				output.Write( BitConverter.GetBytes( input.Length ), 0, 8 );
+					// Write the encoder properties
+					coder.WriteCoderProperties( output );
 
-				// Encode the file.
-				coder.Code( input, output, input.Length, -1, null );
+					// Write the decompressed file size.
+					output.Write( BitConverter.GetBytes( input.Length ), 0, 8 );
+
+					// Encode the file.
+					coder.Code( input, output, input.Length, -1, null );
+				}
+				else
+				{
+					using( GZipStream compressionStream = new GZipStream( output, CompressionMode.Compress ) )
+					{
+						input.CopyTo( compressionStream );
+					}
+				}
 			}
 		}
 
-		// Decompress a file from LZMA format
-		// Credit: http://stackoverflow.com/questions/7646328/how-to-use-the-7z-sdk-to-compress-and-decompress-a-file
-		public static void DecompressFileLZMA( string inFile, string outFile )
+		public static void DecompressFile( string inFile, string outFile, CompressionFormat format )
 		{
-			Compression.LZMA.Decoder coder = new Compression.LZMA.Decoder();
 			using( FileStream input = new FileStream( inFile, FileMode.Open, FileAccess.Read ) )
 			using( FileStream output = new FileStream( outFile, FileMode.Create ) )
 			{
-				// Read the decoder properties
-				byte[] properties = new byte[5];
-				input.Read( properties, 0, 5 );
+				if( format == CompressionFormat.LZMA )
+				{
+					// Credit: http://stackoverflow.com/questions/7646328/how-to-use-the-7z-sdk-to-compress-and-decompress-a-file
+					Compression.LZMA.Decoder coder = new Compression.LZMA.Decoder();
 
-				// Read in the decompress file size.
-				byte[] fileLengthBytes = new byte[8];
-				input.Read( fileLengthBytes, 0, 8 );
-				long fileLength = BitConverter.ToInt64( fileLengthBytes, 0 );
+					// Read the decoder properties
+					byte[] properties = new byte[5];
+					input.Read( properties, 0, 5 );
 
-				coder.SetDecoderProperties( properties );
-				coder.Code( input, output, input.Length, fileLength, null );
+					// Read in the decompress file size.
+					byte[] fileLengthBytes = new byte[8];
+					input.Read( fileLengthBytes, 0, 8 );
+					long fileLength = BitConverter.ToInt64( fileLengthBytes, 0 );
+
+					coder.SetDecoderProperties( properties );
+					coder.Code( input, output, input.Length, fileLength, null );
+				}
+				else
+				{
+					using( GZipStream decompressionStream = new GZipStream( input, CompressionMode.Decompress ) )
+					{
+						decompressionStream.CopyTo( output );
+					}
+				}
 			}
 		}
 
-		public static void CompressFolderLZMA( string inFolder, string outFile )
+		public static void CompressFolder( string inFolder, string outFile, CompressionFormat format )
 		{
-			CompressFolderLZMA( inFolder, outFile, new List<Regex>( 0 ) );
+			CompressFolder( inFolder, outFile, format, new List<Regex>( 0 ) );
 		}
 
-		internal static void CompressFolderLZMA( string inFolder, string outFile, List<Regex> ignoredPathsRegex )
+		internal static void CompressFolder( string inFolder, string outFile, CompressionFormat format, List<Regex> ignoredPathsRegex )
 		{
 			string tarFilePath = outFile + "tmptar";
 
@@ -75,14 +96,14 @@ namespace SimplePatchToolCore
 				CreateTarRecursive( tarArchive, new DirectoryInfo( inFolder ), "", ignoredPathsRegex );
 			}
 
-			CompressFileLZMA( tarFilePath, outFile );
+			CompressFile( tarFilePath, outFile, format );
 			File.Delete( tarFilePath );
 		}
 
-		public static void DecompressFolderLZMA( string inFile, string outFolder )
+		public static void DecompressFolder( string inFile, string outFolder, CompressionFormat format )
 		{
 			string tarFilePath = outFolder + "tmptar.tar";
-			DecompressFileLZMA( inFile, tarFilePath );
+			DecompressFile( inFile, tarFilePath, format );
 
 			// Source: https://github.com/icsharpcode/SharpZipLib/wiki/GZip-and-Tar-Samples#--simple-full-extract-from-a-tar-archive
 			using( Stream inStream = File.OpenRead( tarFilePath ) )
@@ -117,6 +138,18 @@ namespace SimplePatchToolCore
 				string directoryRelativePath = relativePath + subDirectories[i].Name + Path.DirectorySeparatorChar;
 				if( !ignoredPathsRegex.PathMatchesPattern( directoryRelativePath ) )
 					CreateTarRecursive( tarArchive, subDirectories[i], directoryRelativePath, ignoredPathsRegex );
+			}
+		}
+
+		// Credit: https://stackoverflow.com/a/5730893/2373034
+		private static void CopyTo( this Stream input, Stream output )
+		{
+			byte[] buffer = new byte[8 * 1024];
+			int bytesRead;
+
+			while( ( bytesRead = input.Read( buffer, 0, buffer.Length ) ) > 0 )
+			{
+				output.Write( buffer, 0, bytesRead );
 			}
 		}
 	}

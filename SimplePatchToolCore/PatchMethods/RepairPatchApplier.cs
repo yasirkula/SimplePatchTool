@@ -159,7 +159,7 @@ namespace SimplePatchToolCore
 
 				string targetAbsolutePath = rootPath + item.Path;
 				Directory.CreateDirectory( Path.GetDirectoryName( targetAbsolutePath ) );
-				ZipUtils.DecompressFileLZMA( downloadAbsolutePath, targetAbsolutePath );
+				ZipUtils.DecompressFile( downloadAbsolutePath, targetAbsolutePath, comms.VersionInfo.CompressionFormat );
 
 				File.Delete( downloadAbsolutePath );
 				ReportProgress( 1, 0L );
