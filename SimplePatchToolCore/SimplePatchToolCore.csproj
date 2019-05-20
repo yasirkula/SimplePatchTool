@@ -57,8 +57,6 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PatchMethods\InstallerPatchApplier.cs" />
-    <Compile Include="Core\ProjectManager.cs" />
     <Compile Include="External\SharpZipLib\Core\Exceptions\SharpZipBaseException.cs" />
     <Compile Include="External\SharpZipLib\Core\Exceptions\StreamDecodingException.cs" />
     <Compile Include="External\SharpZipLib\Core\Exceptions\StreamUnsupportedException.cs" />
@@ -81,6 +79,8 @@
     <Compile Include="External\SharpZipLib\Tar\TarHeader.cs" />
     <Compile Include="External\SharpZipLib\Tar\TarInputStream.cs" />
     <Compile Include="External\SharpZipLib\Tar\TarOutputStream.cs" />
+    <Compile Include="PatchMethods\InstallerPatchApplier.cs" />
+    <Compile Include="Core\ProjectManager.cs" />
     <Compile Include="PatchMethods\PatchMethodBase.cs" />
     <Compile Include="Serialization\ProjectInfo.cs" />
     <Compile Include="Serialization\VersionCode.cs" />
@@ -152,6 +152,7 @@
     <None Include="App.config" />
     <None Include="External\7zip\LICENSE" />
     <None Include="External\Octodiff\LICENSE" />
+    <None Include="External\SharpZipLib\LICENSE" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
@@ -159,9 +160,6 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="External\SharpZipLib\LICENSE" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
