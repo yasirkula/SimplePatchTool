@@ -16,6 +16,7 @@ namespace SimplePatchToolConsoleApp
 			public string[] requiredArgsDescriptions;
 			public string[] optionalArgs;
 			public string[] optionalArgsDescriptions;
+			public bool hidden;
 			public Action function;
 
 			public override string ToString()
@@ -56,11 +57,62 @@ namespace SimplePatchToolConsoleApp
 		{
 			new ConsoleCommand()
 			{
+				name = "project_create",
+				requiredArgs = new string[] { "projectRoot" },
+				requiredArgsDescriptions = new string[] { "Path of the project directory" },
+				optionalArgs = new string[] { "silent" },
+				optionalArgsDescriptions = new string[] { "" },
+				hidden = false,
+				function = CreateProject
+			},
+			new ConsoleCommand()
+			{
+				name = "project_generate_patch",
+				requiredArgs = new string[] { "projectRoot" },
+				requiredArgsDescriptions = new string[] { "Path of the project directory" },
+				optionalArgs = new string[] { "silent" },
+				optionalArgsDescriptions = new string[] { "" },
+				hidden = false,
+				function = ProjectGeneratePatch
+			},
+			new ConsoleCommand()
+			{
+				name = "project_update_links",
+				requiredArgs = new string[] { "projectRoot" },
+				requiredArgsDescriptions = new string[] { "Path of the project directory" },
+				optionalArgs = new string[] { "silent" },
+				optionalArgsDescriptions = new string[] { "" },
+				hidden = false,
+				function = ProjectUpdateLinks
+			},
+			new ConsoleCommand()
+			{
+				name = "project_sign_xmls",
+				requiredArgs = new string[] { "projectRoot" },
+				requiredArgsDescriptions = new string[] { "Path of the project directory" },
+				optionalArgs = new string[] { "ignoreVersionInfo", "ignorePatchInfos", "silent" },
+				optionalArgsDescriptions = new string[] { "", "", "" },
+				hidden = false,
+				function = ProjectSignXMLs
+			},
+			new ConsoleCommand()
+			{
+				name = "project_verify_xmls",
+				requiredArgs = new string[] { "projectRoot" },
+				requiredArgsDescriptions = new string[] { "Path of the project directory" },
+				optionalArgs = new string[] { "ignoreVersionInfo", "ignorePatchInfos", "silent" },
+				optionalArgsDescriptions = new string[] { "", "", "" },
+				hidden = false,
+				function = ProjectVerifyXMLs
+			},
+			new ConsoleCommand()
+			{
 				name = "create",
 				requiredArgs = new string[] { "root", "out", "name", "version" },
 				requiredArgsDescriptions = new string[] { "Root path", "Output path", "Project name", "Version" },
-				optionalArgs = new string[] { "prevRoot", "ignoredPaths", "dontCreateRepairPatch", "silent" },
-				optionalArgsDescriptions = new string[] { "Previous version path", "Path of ignored paths list", "", "" },
+				optionalArgs = new string[] { "prevRoot", "ignoredPaths", "compressionRepair", "compressionInstaller", "compressionIncremental", "dontCreateRepairPatch", "silent" },
+				optionalArgsDescriptions = new string[] { "Previous version path", "Path of ignored paths list", "Repair patch's compression format (LZMA/GZIP)", "Installer patch's compression format (LZMA/GZIP)", "Incremental patch's compression format (LZMA/GZIP)", "", "" },
+				hidden = true,
 				function = CreatePatch
 			},
 			new ConsoleCommand()
@@ -70,6 +122,7 @@ namespace SimplePatchToolConsoleApp
 				requiredArgsDescriptions = new string[] { "Root path", "VersionInfo URL" },
 				optionalArgs = new string[] { "checkVersionOnly", "silent", "versionInfoKey" },
 				optionalArgsDescriptions = new string[] { "", "", "Path of VersionInfo verifier RSA key" },
+				hidden = false,
 				function = CheckForUpdates
 			},
 			new ConsoleCommand()
@@ -77,8 +130,9 @@ namespace SimplePatchToolConsoleApp
 				name = "apply",
 				requiredArgs = new string[] { "root", "versionURL" },
 				requiredArgsDescriptions = new string[] { "Root path", "VersionInfo URL" },
-				optionalArgs = new string[] { "dontUseIncrementalPatch", "dontUseRepairPatch", "verifyFiles", "silent", "versionInfoKey", "patchInfoKey" },
-				optionalArgsDescriptions = new string[] { "", "", "", "", "Path of VersionInfo verifier RSA key", "Path of PatchInfo verifier RSA key" },
+				optionalArgs = new string[] { "dontUseIncrementalPatch", "dontUseRepairPatch", "dontUseInstallerPatch", "verifyFiles", "silent", "versionInfoKey", "patchInfoKey" },
+				optionalArgsDescriptions = new string[] { "", "", "", "", "", "Path of VersionInfo verifier RSA key", "Path of PatchInfo verifier RSA key" },
+				hidden = false,
 				function = ApplyPatch
 			},
 			new ConsoleCommand()
@@ -88,6 +142,7 @@ namespace SimplePatchToolConsoleApp
 				requiredArgsDescriptions = new string[] { "VersionInfo path", "Download links path" },
 				optionalArgs = new string[] { "silent" },
 				optionalArgsDescriptions = new string[] { "" },
+				hidden = true,
 				function = UpdateLinks
 			},
 			new ConsoleCommand()
@@ -97,6 +152,7 @@ namespace SimplePatchToolConsoleApp
 				requiredArgsDescriptions = new string[] { "XML path", "Private RSA key path" },
 				optionalArgs = new string[] { },
 				optionalArgsDescriptions = new string[] { },
+				hidden = true,
 				function = SignXML
 			},
 			new ConsoleCommand()
@@ -106,6 +162,7 @@ namespace SimplePatchToolConsoleApp
 				requiredArgsDescriptions = new string[] { "XML path", "Public RSA key path" },
 				optionalArgs = new string[] { },
 				optionalArgsDescriptions = new string[] { },
+				hidden = true,
 				function = VerifyXML
 			},
 			new ConsoleCommand()
@@ -115,8 +172,19 @@ namespace SimplePatchToolConsoleApp
 				requiredArgsDescriptions = new string[] { "Private RSA key path", "Public RSA key path" },
 				optionalArgs = new string[] { },
 				optionalArgsDescriptions = new string[] { },
+				hidden = true,
 				function = GenerateRSAKeyPair
-			}
+			},
+			new ConsoleCommand()
+			{
+				name = "help",
+				requiredArgs = new string[] { },
+				requiredArgsDescriptions = new string[] { },
+				optionalArgs = new string[] { },
+				optionalArgsDescriptions = new string[] { },
+				hidden = true,
+				function = Help
+			},
 		};
 
 		public static void Main( string[] args )
@@ -152,40 +220,98 @@ namespace SimplePatchToolConsoleApp
 				}
 			}
 
+			Help();
+		}
+
+		private static void Help()
+		{
 			// Print available commands to the console
 			StringBuilder sb = new StringBuilder( 100 );
-			sb.Append( "Usage: " ).Append( EXECUTABLE_NAME ).Append( " " );
+			sb.Append( "Usage: " ).Append( EXECUTABLE_NAME ).Append( " {Command} {-Argument(s)}\n\nAvailable Commands:\n" );
 			for( int i = 0; i < commands.Length; i++ )
 			{
-				sb.Append( commands[i].name );
-				if( i < commands.Length - 1 )
-					sb.Append( "|" );
+				if( commands[i].hidden )
+					continue;
+
+				sb.AppendLine( commands[i].name );
 			}
 
 			Console.WriteLine( sb.ToString() );
+		}
+
+		private static void CreateProject()
+		{
+			ProjectManager project = new ProjectManager( GetArgument( "projectRoot" ) ).SilentMode( HasArgument( "silent" ) );
+			project.CreateProject();
+
+			WaitForProjectManager( project );
+			SecurityUtils.CreateRSAKeyPairInDirectory( project.utilitiesPath );
+
+			Console.WriteLine( "\nOperation successful..." );
+		}
+
+		private static void ProjectGeneratePatch()
+		{
+			ProjectManager project = new ProjectManager( GetArgument( "projectRoot" ) ).SilentMode( HasArgument( "silent" ) );
+			if( project.GeneratePatch() )
+			{
+				WaitForProjectManager( project );
+
+				if( project.Result == PatchResult.Failed )
+					Console.WriteLine( "\nOperation failed..." );
+				else
+					Console.WriteLine( "\nOperation successful..." );
+			}
+			else
+				Console.WriteLine( "\nOperation could not be started; maybe it is already executing?" );
+		}
+
+		private static void ProjectUpdateLinks()
+		{
+			ProjectManager project = new ProjectManager( GetArgument( "projectRoot" ) ).SilentMode( HasArgument( "silent" ) );
+			project.UpdateDownloadLinks();
+
+			WaitForProjectManager( project );
+		}
+
+		private static void ProjectSignXMLs()
+		{
+			ProjectManager project = new ProjectManager( GetArgument( "projectRoot" ) ).SilentMode( HasArgument( "silent" ) );
+			SecurityUtils.SignXMLsWithKeysInDirectory( project.GetXMLFiles( !HasArgument( "ignoreVersionInfo" ), !HasArgument( "ignorePatchInfos" ) ), project.utilitiesPath );
+
+			Console.WriteLine( "\nOperation successful..." );
+		}
+
+		private static void ProjectVerifyXMLs()
+		{
+			string[] invalidXmls;
+
+			ProjectManager project = new ProjectManager( GetArgument( "projectRoot" ) ).SilentMode( HasArgument( "silent" ) );
+			if( !SecurityUtils.VerifyXMLsWithKeysInDirectory( project.GetXMLFiles( !HasArgument( "ignoreVersionInfo" ), !HasArgument( "ignorePatchInfos" ) ), project.utilitiesPath, out invalidXmls ) )
+			{
+				Console.WriteLine( "\nThe following XMLs could not be verified:\n" );
+				for( int i = 0; i < invalidXmls.Length; i++ )
+					Console.WriteLine( invalidXmls[i] );
+			}
+			else
+				Console.WriteLine( "\nAll XMLs are verified..." );
 		}
 
 		private static void CreatePatch()
 		{
 			string prevRoot = GetArgument( "prevRoot" );
 
+			CompressionFormat repairCompression = GetArgument( "compressionRepair" ) == "GZIP" ? CompressionFormat.GZIP : CompressionFormat.LZMA;
+			CompressionFormat installerCompression = GetArgument( "compressionInstaller" ) == "GZIP" ? CompressionFormat.GZIP : CompressionFormat.LZMA;
+			CompressionFormat incrementalCompression = GetArgument( "compressionIncremental" ) == "GZIP" ? CompressionFormat.GZIP : CompressionFormat.LZMA;
+
 			PatchCreator patchCreator = new PatchCreator( GetArgument( "root" ), GetArgument( "out" ), GetArgument( "name" ), GetArgument( "version" ) ).
-				LoadIgnoredPathsFromFile( GetArgument( "ignoredPaths" ) ).CreateRepairPatch( !HasArgument( "dontCreateRepairPatch" ) ).
-				CreateIncrementalPatch( prevRoot != null, prevRoot ).SilentMode( HasArgument( "silent" ) );
+				LoadIgnoredPathsFromFile( GetArgument( "ignoredPaths" ) ).SetCompressionFormat( repairCompression, installerCompression, incrementalCompression ).
+				CreateRepairPatch( !HasArgument( "dontCreateRepairPatch" ) ).CreateIncrementalPatch( prevRoot != null, prevRoot ).SilentMode( HasArgument( "silent" ) );
 			bool hasStarted = patchCreator.Run();
 			if( hasStarted )
 			{
-				while( patchCreator.IsRunning )
-				{
-					Thread.Sleep( 100 );
-
-					string log = patchCreator.FetchLog();
-					while( log != null )
-					{
-						LogToConsole( log );
-						log = patchCreator.FetchLog();
-					}
-				}
+				WaitForPatchCreator( patchCreator );
 
 				if( patchCreator.Result == PatchResult.Failed )
 					Console.WriteLine( "\nOperation failed..." );
@@ -198,10 +324,9 @@ namespace SimplePatchToolConsoleApp
 
 		private static void CheckForUpdates()
 		{
-			bool silent = HasArgument( "silent" );
 			string versionInfoKeyPath = GetArgument( "versionInfoKey" );
 
-			SimplePatchTool patcher = new SimplePatchTool( GetArgument( "root" ), GetArgument( "versionURL" ) ).SilentMode( silent );
+			SimplePatchTool patcher = new SimplePatchTool( GetArgument( "root" ), GetArgument( "versionURL" ) ).SilentMode( HasArgument( "silent" ) );
 
 			if( versionInfoKeyPath != null )
 			{
@@ -212,17 +337,7 @@ namespace SimplePatchToolConsoleApp
 			bool hasStarted = patcher.CheckForUpdates( HasArgument( "checkVersionOnly" ) );
 			if( hasStarted )
 			{
-				while( patcher.IsRunning )
-				{
-					Thread.Sleep( 100 );
-
-					string log = patcher.FetchLog();
-					while( log != null )
-					{
-						LogToConsole( log );
-						log = patcher.FetchLog();
-					}
-				}
+				WaitForPatcher( patcher );
 
 				if( patcher.Result == PatchResult.Failed )
 					Console.WriteLine( "\nOperation failed: " + patcher.FailReason + " " + ( patcher.FailDetails ?? "" ) );
@@ -241,8 +356,9 @@ namespace SimplePatchToolConsoleApp
 			string versionInfoKeyPath = GetArgument( "versionInfoKey" );
 			string patchInfoKeyPath = GetArgument( "patchInfoKey" );
 
-			SimplePatchTool patcher = new SimplePatchTool( GetArgument( "root" ), GetArgument( "versionURL" ) ).UseIncrementalPatch( !HasArgument( "dontUseIncrementalPatch" ) ).
-					UseRepairPatch( !HasArgument( "dontUseRepairPatch" ) ).VerifyFilesOnServer( HasArgument( "verifyFiles" ) ).LogProgress( !silent ).SilentMode( silent );
+			SimplePatchTool patcher = new SimplePatchTool( GetArgument( "root" ), GetArgument( "versionURL" ) ).
+				UseIncrementalPatch( !HasArgument( "dontUseIncrementalPatch" ) ).UseRepairPatch( !HasArgument( "dontUseRepairPatch" ) ).
+				CheckForMultipleRunningInstances( false ).VerifyFilesOnServer( HasArgument( "verifyFiles" ) ).LogProgress( !silent ).SilentMode( silent );
 
 			if( versionInfoKeyPath != null )
 			{
@@ -259,21 +375,7 @@ namespace SimplePatchToolConsoleApp
 			bool hasPatchStarted = patcher.Run( false );
 			if( hasPatchStarted )
 			{
-				while( patcher.IsRunning )
-				{
-					Thread.Sleep( 100 );
-
-					string log = patcher.FetchLog();
-					while( log != null )
-					{
-						LogToConsole( log );
-						log = patcher.FetchLog();
-					}
-
-					IOperationProgress progress = patcher.FetchProgress();
-					if( progress != null )
-						LogToConsole( progress.ProgressInfo );
-				}
+				WaitForPatcher( patcher );
 
 				if( patcher.Result == PatchResult.Failed )
 					Console.WriteLine( "\nPatch failed: " + patcher.FailReason + " " + ( patcher.FailDetails ?? "" ) );
@@ -315,6 +417,73 @@ namespace SimplePatchToolConsoleApp
 
 			File.WriteAllText( GetArgument( "private" ), privateKey );
 			File.WriteAllText( GetArgument( "public" ), publicKey );
+		}
+
+		private static void WaitForProjectManager( ProjectManager project )
+		{
+			while( project.IsRunning )
+			{
+				Thread.Sleep( 100 );
+				LogProjectManagerToConsole( project );
+			}
+
+			LogProjectManagerToConsole( project );
+		}
+
+		private static void WaitForPatchCreator( PatchCreator patchCreator )
+		{
+			while( patchCreator.IsRunning )
+			{
+				Thread.Sleep( 100 );
+				LogPatchCreatorToConsole( patchCreator );
+			}
+
+			LogPatchCreatorToConsole( patchCreator );
+		}
+
+		private static void WaitForPatcher( SimplePatchTool patcher )
+		{
+			while( patcher.IsRunning )
+			{
+				Thread.Sleep( 100 );
+				LogPatcherToConsole( patcher );
+			}
+
+			LogPatcherToConsole( patcher );
+		}
+
+		private static void LogProjectManagerToConsole( ProjectManager project )
+		{
+			string log = project.FetchLog();
+			while( log != null )
+			{
+				LogToConsole( log );
+				log = project.FetchLog();
+			}
+		}
+
+		private static void LogPatchCreatorToConsole( PatchCreator patchCreator )
+		{
+			string log = patchCreator.FetchLog();
+			while( log != null )
+			{
+				LogToConsole( log );
+				log = patchCreator.FetchLog();
+			}
+		}
+
+		private static void LogPatcherToConsole( SimplePatchTool patcher )
+		{
+			string log = patcher.FetchLog();
+			while( log != null )
+			{
+				LogToConsole( log );
+				log = patcher.FetchLog();
+			}
+
+			IOperationProgress progress = patcher.FetchProgress();
+			if( progress != null )
+				LogToConsole( progress.ProgressInfo );
 		}
 
 		private static void LogToConsole( string log )
