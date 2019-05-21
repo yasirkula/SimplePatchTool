@@ -20,7 +20,7 @@ namespace SimplePatchToolCore
 
 			string rootPath = comms.SelfPatching ? comms.DecompressedFilesPath : comms.RootPath;
 			string patchDecompressPath = comms.GetDecompressPathForPatch( PatchParameters.INSTALLER_PATCH_DIRECTORY );
-			string patchDownloadPath = comms.DownloadsPath + PatchParameters.INSTALLER_PATCH_FILENAME;
+			string patchDownloadPath = comms.CachePath + PatchParameters.INSTALLER_PATCH_FILENAME;
 
 			InstallerPatch patchInfo = comms.VersionInfo.InstallerPatch;
 
@@ -77,7 +77,7 @@ namespace SimplePatchToolCore
 			comms.Stage = PatchStage.ExtractingFilesFromArchive;
 			comms.Log( Localization.Get( StringId.DecompressingPatchX, PatchParameters.INSTALLER_PATCH_FILENAME ) );
 
-			ZipUtils.DecompressFolder( patchFile.FullName, patchDecompressPath, comms.VersionInfo.CompressionFormat );
+			ZipUtils.DecompressFolder( patchFile.FullName, patchDecompressPath, patchInfo.CompressionFormat );
 
 			comms.Stage = PatchStage.UpdatingFiles;
 			comms.Log( Localization.Get( StringId.UpdatingXFiles, filesToUpdate.Count ) );

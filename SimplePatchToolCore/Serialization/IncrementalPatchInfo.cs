@@ -22,6 +22,9 @@ namespace SimplePatchToolCore
 		[XmlIgnore]
 		public string CompressedMd5Hash;
 
+		[XmlIgnore]
+		public CompressionFormat CompressionFormat;
+
 		public List<PatchRenamedItem> RenamedFiles;
 		public List<PatchItem> Files;
 

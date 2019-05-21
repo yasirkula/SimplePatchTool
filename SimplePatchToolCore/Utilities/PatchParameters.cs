@@ -17,11 +17,11 @@
 
 		public const string PROJECT_VERSIONS_DIRECTORY = "Versions";
 		public const string PROJECT_SELF_PATCHER_DIRECTORY = "SelfPatcher";
-		public const string PROJECT_OUTPUT_DIRECTORY = "PatchFiles";
-		public const string PROJECT_RSA_KEYS_DIRECTORY = "RSA";
+		public const string PROJECT_OUTPUT_DIRECTORY = "Output";
+		public const string PROJECT_OTHER_DIRECTORY = "Other";
+
 		public const string PROJECT_SETTINGS_FILENAME = "Settings.xml";
-		public const string PROJECT_RSA_PUBLIC_FILENAME = "public.key";
-		public const string PROJECT_RSA_PRIVATE_FILENAME = "private.key";
+		public const string PROJECT_UPDATE_LINKS_FILENAME = "DownloadLinks.txt";
 
 		public const string LOG_FILE_NAME = "spt_logs.txt";
 		public const long LOG_FILE_MAX_SIZE = 4 * 1024 * 1024L; // 4 MB

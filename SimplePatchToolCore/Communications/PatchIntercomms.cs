@@ -236,7 +236,7 @@ namespace SimplePatchToolCore
 			{
 				FileInfo logFile = new FileInfo( RootPath + PatchParameters.LOG_FILE_NAME );
 				fileLogger = new StreamWriter( logFile.FullName, logFile.Exists && logFile.Length < PatchParameters.LOG_FILE_MAX_SIZE );
-				fileLogger.WriteLine( string.Concat( "=== ", DateTime.UtcNow, " ===" ) );
+				fileLogger.WriteLine( string.Concat( Environment.NewLine, "=== ", DateTime.UtcNow, " ===" ) );
 			}
 			catch
 			{

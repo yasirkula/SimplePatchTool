@@ -9,8 +9,15 @@ namespace SimplePatchToolCore
 {
 	public class PatchCreator
 	{
+		internal interface IListener
+		{
+			void LogReceived( string log );
+		}
+
 		private VersionInfo versionInfo;
 		private IncrementalPatchInfo incrementalPatch;
+
+		private IListener listener;
 
 		private readonly string rootPath;
 		private readonly string outputPath;
@@ -32,7 +39,9 @@ namespace SimplePatchToolCore
 		private HashSet<string> ignoredPaths;
 		private List<Regex> ignoredPathsRegex;
 
-		private CompressionFormat compressionFormat;
+		private CompressionFormat compressionFormatRepairPatch;
+		private CompressionFormat compressionFormatInstallerPatch;
+		private CompressionFormat compressionFormatIncrementalPatch;
 
 		private string baseDownloadURL;
 		private string maintenanceCheckURL;
@@ -104,7 +113,9 @@ namespace SimplePatchToolCore
 			ignoredPaths = new HashSet<string>();
 			ignoredPathsRegex = new List<Regex>() { PatchUtils.WildcardToRegex( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ) }; // Ignore any version holder files
 
-			compressionFormat = CompressionFormat.LZMA;
+			compressionFormatRepairPatch = CompressionFormat.LZMA;
+			compressionFormatInstallerPatch = CompressionFormat.LZMA;
+			compressionFormatIncrementalPatch = CompressionFormat.LZMA;
 
 			baseDownloadURL = "";
 			maintenanceCheckURL = "";
@@ -116,6 +127,12 @@ namespace SimplePatchToolCore
 
 			IsRunning = false;
 			Result = PatchResult.Failed;
+		}
+
+		internal PatchCreator SetListener( IListener listener )
+		{
+			this.listener = listener;
+			return this;
 		}
 
 		public PatchCreator LoadIgnoredPathsFromFile( string pathToIgnoredPathsList )
@@ -219,10 +236,14 @@ namespace SimplePatchToolCore
 			return this;
 		}
 
-		public PatchCreator SetCompressionFormat( CompressionFormat compressionFormat )
+		public PatchCreator SetCompressionFormat( CompressionFormat repairPatch, CompressionFormat installerPatch, CompressionFormat incrementalPatch )
 		{
 			if( !IsRunning )
-				this.compressionFormat = compressionFormat;
+			{
+				compressionFormatRepairPatch = repairPatch;
+				compressionFormatInstallerPatch = installerPatch;
+				compressionFormatIncrementalPatch = incrementalPatch;
+			}
 
 			return this;
 		}
@@ -242,9 +263,14 @@ namespace SimplePatchToolCore
 		{
 			if( !silentMode && !cancel )
 			{
-				lock( logs )
+				if( listener != null )
+					listener.LogReceived( log );
+				else
 				{
-					logs.Enqueue( log );
+					lock( logs )
+					{
+						logs.Enqueue( log );
+					}
 				}
 			}
 		}
@@ -298,7 +324,7 @@ namespace SimplePatchToolCore
 				Version = version,
 				BaseDownloadURL = baseDownloadURL,
 				MaintenanceCheckURL = maintenanceCheckURL,
-				CompressionFormat = compressionFormat
+				CompressionFormat = compressionFormatRepairPatch
 			};
 
 			PatchUtils.DeleteDirectory( outputPath );
@@ -362,7 +388,7 @@ namespace SimplePatchToolCore
 				compressTimer.Reset();
 				compressTimer.Start();
 
-				ZipUtils.CompressFile( fromAbsolutePath, toAbsolutePath, compressionFormat );
+				ZipUtils.CompressFile( fromAbsolutePath, toAbsolutePath, compressionFormatRepairPatch );
 				Log( Localization.Get( StringId.CompressionFinishedInXSeconds, compressTimer.ElapsedSeconds() ) );
 
 				patchItem.OnCompressed( new FileInfo( toAbsolutePath ) );
@@ -398,7 +424,7 @@ namespace SimplePatchToolCore
 			Stopwatch timer = Stopwatch.StartNew();
 
 			Log( Localization.Get( StringId.CompressingXToY, rootPath, compressedPatchPath ) );
-			ZipUtils.CompressFolder( rootPath, compressedPatchPath, compressionFormat, ignoredPathsRegex );
+			ZipUtils.CompressFolder( rootPath, compressedPatchPath, compressionFormatInstallerPatch, ignoredPathsRegex );
 
 			if( cancel )
 				return PatchResult.Failed;
@@ -406,7 +432,7 @@ namespace SimplePatchToolCore
 			Log( Localization.Get( StringId.PatchCreatedInXSeconds, timer.ElapsedSeconds() ) );
 
 			FileInfo installerPatch = new FileInfo( compressedPatchPath );
-			versionInfo.InstallerPatch = new InstallerPatch( installerPatch );
+			versionInfo.InstallerPatch = new InstallerPatch( installerPatch, compressionFormatInstallerPatch );
 
 			// Calculate compression ratio
 			long uncompressedTotal = 0L, compressedTotal = installerPatch.Length;
@@ -443,12 +469,12 @@ namespace SimplePatchToolCore
 
 			Log( Localization.Get( StringId.CompressingPatchIntoOneFile ) );
 			string compressedPatchPath = incrementalPatchOutputPath + incrementalPatch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_FILE_EXTENSION;
-			ZipUtils.CompressFolder( incrementalPatchTempPath, compressedPatchPath, compressionFormat );
+			ZipUtils.CompressFolder( incrementalPatchTempPath, compressedPatchPath, compressionFormatIncrementalPatch );
 
 			Log( Localization.Get( StringId.WritingIncrementalPatchInfoToXML ) );
 			PatchUtils.SerializeIncrementalPatchInfoToXML( incrementalPatch, incrementalPatchOutputPath + incrementalPatch.PatchVersion() + PatchParameters.INCREMENTAL_PATCH_INFO_EXTENSION );
 
-			versionInfo.IncrementalPatches.Add( new IncrementalPatch( previousVersion, version, new FileInfo( compressedPatchPath ), incrementalPatch.Files.Count ) );
+			versionInfo.IncrementalPatches.Add( new IncrementalPatch( previousVersion, version, new FileInfo( compressedPatchPath ), incrementalPatch.Files.Count, compressionFormatIncrementalPatch ) );
 
 			PatchUtils.DeleteDirectory( incrementalPatchTempPath );
 

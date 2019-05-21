@@ -77,7 +77,7 @@ namespace SimplePatchToolCore
 				DateTime now = DateTime.Now;
 				double deltaSeconds = ( now - lastDownloadSpeedCalcTime ).TotalSeconds;
 
-				CalculateDownloadStats( downloadHandler.DownloadedFileSize, 0L, deltaSeconds );
+				CalculateDownloadStats( downloadHandler.DownloadedFileSize, 0L, deltaSeconds > 0 ? deltaSeconds : 0.5 );
 			}
 
 			lock( userState )

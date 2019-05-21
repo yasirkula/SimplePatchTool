@@ -31,9 +31,8 @@ namespace SimplePatchToolCore
 		public List<IncrementalPatch> IncrementalPatches;
 		public InstallerPatch InstallerPatch;
 
-		public CompressionFormat CompressionFormat;
-
 		public List<string> IgnoredPaths;
+		public CompressionFormat CompressionFormat;
 		public List<VersionItem> Files;
 
 		[XmlIgnore]
@@ -49,9 +48,8 @@ namespace SimplePatchToolCore
 			IncrementalPatches = new List<IncrementalPatch>();
 			InstallerPatch = new InstallerPatch();
 
-			CompressionFormat = CompressionFormat.LZMA;
-
 			IgnoredPaths = new List<string>();
+			CompressionFormat = CompressionFormat.LZMA;
 			Files = new List<VersionItem>();
 		}
 
@@ -156,6 +154,9 @@ namespace SimplePatchToolCore
 		public int Files;
 
 		[XmlAttribute]
+		public CompressionFormat CompressionFormat;
+
+		[XmlAttribute]
 		public long PatchSize;
 
 		[XmlAttribute]
@@ -172,17 +173,19 @@ namespace SimplePatchToolCore
 			FromVersion = new VersionCode( 0, 0 );
 			ToVersion = new VersionCode( 0, 0 );
 			Files = 0;
+			CompressionFormat = CompressionFormat.LZMA;
 			PatchSize = 0L;
 			PatchMd5Hash = "";
 			InfoURL = "";
 			DownloadURL = "";
 		}
 
-		public IncrementalPatch( VersionCode fromVersion, VersionCode toVersion, FileInfo patchFile, int numberOfFiles )
+		public IncrementalPatch( VersionCode fromVersion, VersionCode toVersion, FileInfo patchFile, int numberOfFiles, CompressionFormat format )
 		{
 			FromVersion = fromVersion;
 			ToVersion = toVersion;
 			Files = numberOfFiles;
+			CompressionFormat = format;
 			PatchSize = patchFile.Length;
 			PatchMd5Hash = patchFile.Md5Hash();
 			InfoURL = "";
@@ -192,6 +195,9 @@ namespace SimplePatchToolCore
 
 	public class InstallerPatch
 	{
+		[XmlAttribute]
+		public CompressionFormat CompressionFormat;
+
 		[XmlAttribute]
 		public long PatchSize;
 
@@ -203,13 +209,15 @@ namespace SimplePatchToolCore
 
 		public InstallerPatch()
 		{
+			CompressionFormat = CompressionFormat.LZMA;
 			PatchSize = 0L;
 			PatchMd5Hash = "";
 			DownloadURL = "";
 		}
 
-		public InstallerPatch( FileInfo patchFile )
+		public InstallerPatch( FileInfo patchFile, CompressionFormat format )
 		{
+			CompressionFormat = format;
 			PatchSize = patchFile.Length;
 			PatchMd5Hash = patchFile.Md5Hash();
 			DownloadURL = "";

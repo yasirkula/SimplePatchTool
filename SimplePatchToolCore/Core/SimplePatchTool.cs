@@ -695,8 +695,13 @@ namespace SimplePatchToolCore
 
 				if( success )
 					break;
-				else if( i == preferredPatchMethods.Count - 1 )
-					return PatchResult.Failed;
+				else
+				{
+					comms.LogToFile( string.Concat( comms.FailReason, ": ", comms.FailDetails ) );
+
+					if( i == preferredPatchMethods.Count - 1 )
+						return PatchResult.Failed;
+				}
 			}
 
 			PatchStage = PatchStage.CheckingFileIntegrity;
@@ -893,6 +898,8 @@ namespace SimplePatchToolCore
 			if( comms.Cancel )
 				return false;
 
+			comms.LogToFile( Localization.Get( StringId.ApplyingRepairPatch ) );
+
 			if( new RepairPatchApplier( comms ).Run() == PatchResult.Failed )
 				return false;
 
@@ -903,6 +910,8 @@ namespace SimplePatchToolCore
 		{
 			if( comms.Cancel )
 				return false;
+
+			comms.LogToFile( Localization.Get( StringId.ApplyingIncrementalPatch ) );
 
 			if( incrementalPatches.Count == 0 )
 				return false;
@@ -989,6 +998,7 @@ namespace SimplePatchToolCore
 				patchInfo.DownloadURL = comms.VersionInfo.GetDownloadURLFor( incrementalPatch );
 				patchInfo.CompressedFileSize = incrementalPatch.PatchSize;
 				patchInfo.CompressedMd5Hash = incrementalPatch.PatchMd5Hash;
+				patchInfo.CompressionFormat = incrementalPatch.CompressionFormat;
 
 				incrementalPatchesInfo.Add( patchInfo );
 
@@ -1006,6 +1016,8 @@ namespace SimplePatchToolCore
 		{
 			if( comms.Cancel )
 				return false;
+
+			comms.LogToFile( Localization.Get( StringId.ApplyingInstallerPatch ) );
 
 			if( comms.VerifyFiles )
 			{
