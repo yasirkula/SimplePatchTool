@@ -13,8 +13,6 @@
 		private int completedFileOperations;
 		private long downloadedBytes;
 
-		public bool IsUsed { get; set; }
-
 		public int Percentage
 		{
 			get
@@ -64,17 +62,21 @@
 		{
 			PatchResult result = Execute();
 
-			if( fileOperationsMultiplier > 0f )
-				completedFileOperations = (int) ( 150f / fileOperationsMultiplier );
-			else
-				completedFileOperations = 0;
+			if( comms.LogProgress )
+			{
+				if( fileOperationsMultiplier > 0f )
+					completedFileOperations = (int) ( 150f / fileOperationsMultiplier );
+				else
+					completedFileOperations = 0;
 
-			if( downloadSizeMultiplier > 0 )
-				downloadedBytes = (long) ( 150 / downloadSizeMultiplier );
-			else
-				downloadedBytes = 0;
+				if( downloadSizeMultiplier > 0 )
+					downloadedBytes = (long) ( 150 / downloadSizeMultiplier );
+				else
+					downloadedBytes = 0;
 
-			IsUsed = false;
+				comms.SetOverallProgress( this );
+			}
+
 			return result;
 		}
 
@@ -98,7 +100,8 @@
 			else
 				downloadSizeMultiplier = 0;
 
-			comms.DownloadManager.SetDownloadListener( this );
+			comms.DownloadManager.SetListener( this );
+			comms.SetOverallProgress( this );
 		}
 
 		protected void ReportProgress( int filesProcessed, long bytesDownloaded )
@@ -106,7 +109,7 @@
 			completedFileOperations += filesProcessed;
 			downloadedBytes += bytesDownloaded;
 
-			IsUsed = false;
+			comms.SetOverallProgress( this );
 		}
 
 		public void DownloadedBytes( long bytes )

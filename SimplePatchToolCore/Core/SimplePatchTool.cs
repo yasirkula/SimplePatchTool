@@ -38,6 +38,21 @@ namespace SimplePatchToolCore
 
 	public class SimplePatchTool
 	{
+		public interface IListener
+		{
+			bool ReceiveLogs { get; }
+			bool ReceiveProgress { get; }
+
+			void Started();
+			void LogReceived( string log );
+			void ProgressChanged( IOperationProgress progress );
+			void OverallProgressChanged( IOperationProgress progress );
+			void PatchStageChanged( PatchStage stage );
+			void PatchMethodChanged( PatchMethod method );
+			void VersionFetched( string currentVersion, string newVersion );
+			void Finished();
+		}
+
 		private struct PatchMethodHolder
 		{
 			public readonly PatchMethod method;
@@ -154,6 +169,21 @@ namespace SimplePatchToolCore
 			IsRunning = false;
 			PatchMethod = PatchMethod.None;
 			Result = PatchResult.Failed;
+		}
+
+		public SimplePatchTool SetListener( IListener listener )
+		{
+			comms.Listener = listener;
+			if( listener != null && IsRunning )
+			{
+				try
+				{
+					listener.Started();
+				}
+				catch { }
+			}
+
+			return this;
 		}
 
 		public SimplePatchTool UseRepairPatch( bool canRepairPatch )
@@ -351,6 +381,15 @@ namespace SimplePatchToolCore
 		{
 			comms.InitializeFileLogger();
 
+			if( comms.Listener != null )
+			{
+				try
+				{
+					comms.Listener.Started();
+				}
+				catch { }
+			}
+
 			try
 			{
 				bool checkVersionOnly = (bool) checkVersionOnlyParameter;
@@ -370,6 +409,15 @@ namespace SimplePatchToolCore
 			else
 				comms.Log( comms.FailDetails );
 
+			if( comms.Listener != null )
+			{
+				try
+				{
+					comms.Listener.Finished();
+				}
+				catch { }
+			}
+
 			comms.DisposeFileLogger();
 			IsRunning = false;
 		}
@@ -377,6 +425,15 @@ namespace SimplePatchToolCore
 		private void ThreadPatchFunction()
 		{
 			comms.InitializeFileLogger();
+
+			if( comms.Listener != null )
+			{
+				try
+				{
+					comms.Listener.Started();
+				}
+				catch { }
+			}
 
 			try
 			{
@@ -395,6 +452,15 @@ namespace SimplePatchToolCore
 				comms.Log( Operation == PatchOperation.Patching ? Localization.Get( StringId.AppIsUpToDate ) : Localization.Get( StringId.ReadyToSelfPatch ) );
 			else
 				comms.Log( comms.FailDetails );
+
+			if( comms.Listener != null )
+			{
+				try
+				{
+					comms.Listener.Finished();
+				}
+				catch { }
+			}
 
 			comms.DisposeFileLogger();
 			IsRunning = false;
@@ -673,6 +739,15 @@ namespace SimplePatchToolCore
 			{
 				PatchMethod patchMethod = preferredPatchMethods[i].method;
 
+				if( comms.Listener != null )
+				{
+					try
+					{
+						comms.Listener.PatchMethodChanged( patchMethod );
+					}
+					catch { }
+				}
+
 				bool success;
 				if( patchMethod == PatchMethod.RepairPatch )
 				{
@@ -890,6 +965,16 @@ namespace SimplePatchToolCore
 				filesInVersion.Add( versionInfoFiles[i].Path );
 
 			currentVersion = PatchUtils.GetVersion( comms.RootPath, comms.VersionInfo.Name );
+
+			if( comms.Listener != null )
+			{
+				try
+				{
+					comms.Listener.VersionFetched( currentVersion, comms.VersionInfo.Version );
+				}
+				catch { }
+			}
+
 			return true;
 		}
 

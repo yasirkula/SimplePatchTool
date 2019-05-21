@@ -164,10 +164,7 @@ namespace SimplePatchToolCore
 			FilePatchProgress progress = null;
 			string tempOutputPath = diffPath + "_.tmp";
 			if( comms.LogProgress )
-			{
-				progress = new FilePatchProgress( Path.GetFileName( filePath ) );
-				comms.SetProgress( progress );
-			}
+				progress = new FilePatchProgress( comms, Path.GetFileName( filePath ) );
 
 			OctoUtils.ApplyDelta( filePath, tempOutputPath, diffPath, progress );
 

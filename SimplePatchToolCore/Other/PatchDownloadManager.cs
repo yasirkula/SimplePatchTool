@@ -17,7 +17,7 @@ namespace SimplePatchToolCore
 		private readonly PatchIntercomms comms;
 
 		private IDownloadHandler downloadHandler;
-		private IDownloadListener downloadListener;
+		private IDownloadListener listener;
 
 		private long lastDownloadBytes;
 		private DateTime lastDownloadSpeedCalcTime;
@@ -52,9 +52,9 @@ namespace SimplePatchToolCore
 			downloadHandler.OnDownloadFileProgressChange += DownloadFileProgressChangedCallback;
 		}
 
-		public void SetDownloadListener( IDownloadListener downloadListener )
+		public void SetListener( IDownloadListener listener )
 		{
-			this.downloadListener = downloadListener;
+			this.listener = listener;
 		}
 
 		#region Callback Functions
@@ -152,8 +152,8 @@ namespace SimplePatchToolCore
 
 			if( bytesChange > 0 )
 			{
-				if( downloadListener != null )
-					downloadListener.DownloadedBytes( bytesChange );
+				if( listener != null )
+					listener.DownloadedBytes( bytesChange );
 
 				downloadHandler.Progress.UpdateValues( (long) ( bytesChange / deltaSeconds ), bytes );
 				return true;
@@ -270,10 +270,7 @@ namespace SimplePatchToolCore
 			downloadHandler.DownloadedFileSize = fileSize;
 
 			if( comms.LogProgress )
-			{
-				downloadHandler.Progress = new DownloadProgress( downloadHandler );
-				comms.SetProgress( downloadHandler.Progress );
-			}
+				downloadHandler.Progress = new DownloadProgress( comms, downloadHandler );
 
 			if( IsGoogleDriveURL( url ) )
 			{

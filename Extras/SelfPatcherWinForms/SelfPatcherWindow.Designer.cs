@@ -36,9 +36,9 @@
 			// closeButton
 			// 
 			this.closeButton.Enabled = false;
-			this.closeButton.Location = new System.Drawing.Point(277, 109);
+			this.closeButton.Location = new System.Drawing.Point(150, 109);
 			this.closeButton.Name = "closeButton";
-			this.closeButton.Size = new System.Drawing.Size(100, 39);
+			this.closeButton.Size = new System.Drawing.Size(121, 39);
 			this.closeButton.TabIndex = 0;
 			this.closeButton.Text = "OK";
 			this.closeButton.UseMnemonic = false;

@@ -42,6 +42,8 @@ namespace SimplePatchToolCore
 		public bool IsRunning { get; private set; }
 		public PatchResult Result { get; private set; }
 
+		bool PatchCreator.IListener.ReceiveLogs { get { return true; } }
+
 		/// <exception cref = "UnauthorizedAccessException">A path needs admin priviledges to write</exception>
 		/// <exception cref = "ArgumentException">An argument is empty</exception>
 		public ProjectManager( string projectRoot )
@@ -147,6 +149,10 @@ namespace SimplePatchToolCore
 		void PatchCreator.IListener.LogReceived( string log )
 		{
 			Log( log );
+		}
+
+		void PatchCreator.IListener.Finished()
+		{
 		}
 
 		private void Log( string log )

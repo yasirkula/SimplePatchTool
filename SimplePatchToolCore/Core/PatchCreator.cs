@@ -9,9 +9,12 @@ namespace SimplePatchToolCore
 {
 	public class PatchCreator
 	{
-		internal interface IListener
+		public interface IListener
 		{
+			bool ReceiveLogs { get; }
+
 			void LogReceived( string log );
+			void Finished();
 		}
 
 		private VersionInfo versionInfo;
@@ -129,7 +132,7 @@ namespace SimplePatchToolCore
 			Result = PatchResult.Failed;
 		}
 
-		internal PatchCreator SetListener( IListener listener )
+		public PatchCreator SetListener( IListener listener )
 		{
 			this.listener = listener;
 			return this;
@@ -263,8 +266,14 @@ namespace SimplePatchToolCore
 		{
 			if( !silentMode && !cancel )
 			{
-				if( listener != null )
-					listener.LogReceived( log );
+				if( listener != null && listener.ReceiveLogs )
+				{
+					try
+					{
+						listener.LogReceived( log );
+					}
+					catch { }
+				}
 				else
 				{
 					lock( logs )
@@ -311,6 +320,13 @@ namespace SimplePatchToolCore
 				Log( e.ToString() );
 				Result = PatchResult.Failed;
 			}
+
+			try
+			{
+				if( listener != null )
+					listener.Finished();
+			}
+			catch { }
 
 			IsRunning = false;
 		}

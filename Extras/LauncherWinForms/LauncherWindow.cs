@@ -9,18 +9,21 @@ namespace LauncherWinForms
 {
 	public partial class LauncherWindow : Form
 	{
-		// You should update these constants
+		// UPDATE THESE CONSTANTS
 		private const string LAUNCHER_VERSIONINFO_URL = ""; // see: https://github.com/yasirkula/SimplePatchTool/wiki/Generating-versionInfoURL
 		private const string MAINAPP_VERSIONINFO_URL = ""; // see: https://github.com/yasirkula/SimplePatchTool/wiki/Generating-versionInfoURL
 		private const string MAINAPP_SUBDIRECTORY = "MainApp";
 		private const string MAINAPP_EXECUTABLE = "MainApp.exe"; // Main app executable will be located at {APPLICATION_DIRECTORY}/MainApp/MainApp.exe
+		private const string SELF_PATCHER_EXECUTABLE = "SelfPatcher.exe"; // Self patcher executable will be located at {APPLICATION_DIRECTORY}/SPPatcher/SelfPatcher.exe
 		private const string PATCH_NOTES_URL = "http://websitetips.com/articles/copy/lorem/ipsum.txt";
-		private readonly string SELF_PATCHER_PATH = string.Concat( "SPPatcher", Path.DirectorySeparatorChar, "SelfPatcher.exe" );
 
 		private readonly string launcherDirectory;
 		private readonly string mainAppDirectory;
+		private readonly string selfPatcherPath;
 
 		private SimplePatchTool patcher;
+		private PatcherAsyncListener patcherListener;
+
 		private bool isPatchingLauncher;
 
 		private delegate void InvokeDelegate();
@@ -31,6 +34,7 @@ namespace LauncherWinForms
 
 			launcherDirectory = Path.GetDirectoryName( PatchUtils.GetCurrentExecutablePath() );
 			mainAppDirectory = Path.Combine( launcherDirectory, MAINAPP_SUBDIRECTORY );
+			selfPatcherPath = string.Concat( PatchParameters.SELF_PATCHER_DIRECTORY, Path.DirectorySeparatorChar, SELF_PATCHER_EXECUTABLE );
 
 			patchNotesText.Text = string.Empty;
 			statusText.Text = string.Empty;
@@ -44,6 +48,22 @@ namespace LauncherWinForms
 
 			if( !string.IsNullOrEmpty( PATCH_NOTES_URL ) )
 				FetchPatchNotes();
+
+			patcherListener = new PatcherAsyncListener();
+			patcherListener.OnLogReceived += ( log ) => UpdateLabel( statusText, log );
+			patcherListener.OnProgressChanged += ( progress ) =>
+			{
+				UpdateLabel( progressText, progress.ProgressInfo );
+				UpdateProgressbar( progressBar, progress.Percentage );
+			};
+			patcherListener.OnOverallProgressChanged += ( progress ) => UpdateProgressbar( overallProgressBar, progress.Percentage );
+			patcherListener.OnFinish += () =>
+			{
+				if( patcher.Operation == PatchOperation.CheckingForUpdates )
+					CheckForUpdatesFinished();
+				else
+					PatchFinished();
+			};
 
 			if( !StartLauncherPatch() )
 				StartMainAppPatch( true );
@@ -74,7 +94,7 @@ namespace LauncherWinForms
 				Close();
 			}
 			else
-				UpdateLabel( statusText, MAINAPP_EXECUTABLE + " does not exist!" );
+				UpdateLabel( statusText, Localization.Get( StringId.E_XDoesNotExist, MAINAPP_EXECUTABLE ) );
 		}
 
 		private bool StartLauncherPatch()
@@ -87,7 +107,7 @@ namespace LauncherWinForms
 
 			isPatchingLauncher = true;
 
-			patcher = new SimplePatchTool( launcherDirectory, LAUNCHER_VERSIONINFO_URL ).UseRepairPatch( true ).UseIncrementalPatch( true );
+			patcher = new SimplePatchTool( launcherDirectory, LAUNCHER_VERSIONINFO_URL ).SetListener( patcherListener );
 			CheckForUpdates( false );
 
 			return true;
@@ -103,7 +123,7 @@ namespace LauncherWinForms
 
 			isPatchingLauncher = false;
 
-			patcher = new SimplePatchTool( mainAppDirectory, MAINAPP_VERSIONINFO_URL ).UseRepairPatch( true ).UseIncrementalPatch( true );
+			patcher = new SimplePatchTool( mainAppDirectory, MAINAPP_VERSIONINFO_URL ).SetListener( patcherListener );
 
 			if( checkForUpdates )
 				CheckForUpdates( true );
@@ -118,125 +138,87 @@ namespace LauncherWinForms
 		// false: hashes and sizes of the local files are compared against VersionInfo (if there are any different/missing files, we'll patch the app)
 		private void CheckForUpdates( bool checkVersionOnly )
 		{
-			StartThread( () =>
+			if( patcher.CheckForUpdates( checkVersionOnly ) )
 			{
 				ButtonSetEnabled( patchButton, false );
 				ButtonSetEnabled( playButton, true );
-
-				patcher.LogProgress( false );
-				if( patcher.CheckForUpdates( checkVersionOnly ) )
-				{
-					while( patcher.IsRunning )
-					{
-						FetchLogsFromPatcher();
-						Thread.Sleep( 500 );
-					}
-
-					FetchLogsFromPatcher();
-
-					if( patcher.Result == PatchResult.AlreadyUpToDate )
-					{
-						// If launcher is already up-to-date, check if there is an update for the main app
-						if( isPatchingLauncher )
-							StartMainAppPatch( true );
-					}
-					else if( patcher.Result == PatchResult.Success )
-					{
-						// There is an update, enable the Patch button
-						ButtonSetEnabled( patchButton, true );
-					}
-					else
-					{
-						// An error occurred, user can click the Patch button to try again
-						ButtonSetEnabled( patchButton, true );
-					}
-				}
-			} );
+			}
 		}
 
 		private void ExecutePatch()
 		{
-			StartThread( () =>
+			if( patcher.Run( isPatchingLauncher ) )
 			{
 				ButtonSetEnabled( patchButton, false );
 				ButtonSetEnabled( playButton, false );
-
-				patcher.LogProgress( true );
-				if( patcher.Run( isPatchingLauncher ) )
-				{
-					while( patcher.IsRunning )
-					{
-						FetchLogsFromPatcher();
-						Thread.Sleep( 500 );
-					}
-
-					FetchLogsFromPatcher();
-					ButtonSetEnabled( playButton, true );
-
-					if( patcher.Result == PatchResult.AlreadyUpToDate )
-					{
-						// If launcher is already up-to-date, check if there is an update for the main app
-						if( isPatchingLauncher )
-							StartMainAppPatch( true );
-					}
-					else if( patcher.Result == PatchResult.Success )
-					{
-						// If patcher was self patching the launcher, start the self patcher executable
-						// Otherwise, we have just updated the main app successfully!
-						if( patcher.Operation == PatchOperation.SelfPatching )
-						{
-							if( !patcher.ApplySelfPatch( Path.Combine( launcherDirectory, SELF_PATCHER_PATH ), PatchUtils.GetCurrentExecutablePath() ) )
-								FetchLogsFromPatcher();
-						}
-					}
-					else
-					{
-						// An error occurred, user can click the Patch button to try again
-						ButtonSetEnabled( patchButton, true );
-					}
-				}
-			} );
+			}
 		}
 
-		private void FetchLogsFromPatcher()
+		private void CheckForUpdatesFinished()
 		{
-			string log = patcher.FetchLog();
-			while( log != null )
+			if( patcher.Result == PatchResult.AlreadyUpToDate )
 			{
-				UpdateLabel( statusText, log );
-				log = patcher.FetchLog();
+				// If launcher is already up-to-date, check if there is an update for the main app
+				if( isPatchingLauncher )
+					StartMainAppPatch( true );
 			}
-
-			IOperationProgress progress = patcher.FetchProgress();
-			while( progress != null )
+			else if( patcher.Result == PatchResult.Success )
 			{
-				UpdateLabel( progressText, progress.ProgressInfo );
-				UpdateProgressbar( progressBar, progress.Percentage );
+				// There is an update, enable the Patch button
+				ButtonSetEnabled( patchButton, true );
+			}
+			else
+			{
+				// An error occurred, user can click the Patch button to try again
+				ButtonSetEnabled( patchButton, true );
+			}
+		}
 
-				progress = patcher.FetchProgress();
+		private void PatchFinished()
+		{
+			ButtonSetEnabled( playButton, true );
+
+			if( patcher.Result == PatchResult.AlreadyUpToDate )
+			{
+				// If launcher is already up-to-date, check if there is an update for the main app
+				if( isPatchingLauncher )
+					StartMainAppPatch( true );
+			}
+			else if( patcher.Result == PatchResult.Success )
+			{
+				// If patcher was self patching the launcher, start the self patcher executable
+				// Otherwise, we have just updated the main app successfully
+				if( patcher.Operation == PatchOperation.SelfPatching )
+					patcher.ApplySelfPatch( Path.Combine( launcherDirectory, selfPatcherPath ), PatchUtils.GetCurrentExecutablePath() );
+			}
+			else
+			{
+				// An error occurred, user can click the Patch button to try again
+				ButtonSetEnabled( patchButton, true );
 			}
 		}
 
 		private void FetchPatchNotes()
 		{
+			WebClient webClient = null;
 			try
 			{
-				WebClient webClient = new WebClient();
+				webClient = new WebClient();
 				webClient.DownloadStringCompleted += ( sender, args ) =>
 				{
 					if( !args.Cancelled && args.Error == null )
 						UpdateLabel( patchNotesText, args.Result );
+
+					webClient.Dispose();
 				};
 
 				webClient.DownloadStringAsync( new System.Uri( PATCH_NOTES_URL ) );
 			}
-			catch { }
-		}
-
-		private void StartThread( ThreadStart function )
-		{
-			Thread thread = new Thread( new ThreadStart( function ) ) { IsBackground = true };
-			thread.Start();
+			catch
+			{
+				if( webClient != null )
+					webClient.Dispose();
+			}
 		}
 
 		private void ButtonSetEnabled( Button button, bool isEnabled )

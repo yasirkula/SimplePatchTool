@@ -28,13 +28,33 @@ namespace SimplePatchToolCore
 			}
 		}
 
+		public SimplePatchTool.IListener Listener;
+
 		public bool Cancel;
 		public bool SilentMode;
 		public bool LogProgress;
 		public bool FileLogging;
 		public bool VerifyFiles;
 
-		public PatchStage Stage;
+		private PatchStage m_stage;
+		public PatchStage Stage
+		{
+			get { return m_stage; }
+			set
+			{
+				m_stage = value;
+
+				if( Listener != null )
+				{
+					try
+					{
+						Listener.PatchStageChanged( value );
+					}
+					catch { }
+				}
+			}
+		}
+
 		public PatchFailReason FailReason;
 		public string FailDetails;
 
@@ -43,6 +63,7 @@ namespace SimplePatchToolCore
 		private readonly Queue<string> logs;
 		private StreamWriter fileLogger;
 
+		private readonly object progressLock;
 		private IOperationProgress progress;
 		private IOperationProgress overallProgress;
 
@@ -52,7 +73,10 @@ namespace SimplePatchToolCore
 			RootPath = rootPath;
 
 			logs = new Queue<string>();
+
+			progressLock = new object();
 			progress = null;
+			overallProgress = null;
 
 			DownloadManager = new PatchDownloadManager( this );
 
@@ -76,9 +100,20 @@ namespace SimplePatchToolCore
 		{
 			if( !SilentMode && !Cancel )
 			{
-				lock( logs )
+				if( Listener != null && Listener.ReceiveLogs )
 				{
-					logs.Enqueue( log );
+					try
+					{
+						Listener.LogReceived( log );
+					}
+					catch { }
+				}
+				else
+				{
+					lock( logs )
+					{
+						logs.Enqueue( log );
+					}
 				}
 			}
 
@@ -119,13 +154,45 @@ namespace SimplePatchToolCore
 		public void SetProgress( IOperationProgress progress )
 		{
 			if( !Cancel && LogProgress )
-				this.progress = progress;
+			{
+				if( Listener != null && Listener.ReceiveProgress )
+				{
+					try
+					{
+						Listener.ProgressChanged( progress );
+					}
+					catch { }
+				}
+				else
+				{
+					lock( progressLock )
+					{
+						this.progress = progress;
+					}
+				}
+			}
 		}
 
 		public void SetOverallProgress( IOperationProgress overallProgress )
 		{
 			if( !Cancel && LogProgress )
-				this.overallProgress = overallProgress;
+			{
+				if( Listener != null && Listener.ReceiveProgress )
+				{
+					try
+					{
+						Listener.OverallProgressChanged( overallProgress );
+					}
+					catch { }
+				}
+				else
+				{
+					lock( progressLock )
+					{
+						this.overallProgress = overallProgress;
+					}
+				}
+			}
 		}
 
 		public string FetchLog()
@@ -141,24 +208,30 @@ namespace SimplePatchToolCore
 
 		public IOperationProgress FetchProgress()
 		{
-			if( progress != null && !progress.IsUsed )
+			IOperationProgress result = progress;
+			if( progress != null )
 			{
-				progress.IsUsed = true;
-				return progress;
+				lock( progressLock )
+				{
+					progress = null;
+				}
 			}
 
-			return null;
+			return result;
 		}
 
 		public IOperationProgress FetchOverallProgress()
 		{
-			if( overallProgress != null && !overallProgress.IsUsed )
+			IOperationProgress result = overallProgress;
+			if( overallProgress != null )
 			{
-				overallProgress.IsUsed = true;
-				return overallProgress;
+				lock( progressLock )
+				{
+					overallProgress = null;
+				}
 			}
 
-			return null;
+			return result;
 		}
 
 		public bool IsUnderMaintenance()
