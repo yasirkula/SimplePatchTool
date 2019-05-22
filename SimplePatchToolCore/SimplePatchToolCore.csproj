@@ -79,7 +79,7 @@
     <Compile Include="External\SharpZipLib\Tar\TarHeader.cs" />
     <Compile Include="External\SharpZipLib\Tar\TarInputStream.cs" />
     <Compile Include="External\SharpZipLib\Tar\TarOutputStream.cs" />
-    <Compile Include="Other\PatcherAsyncListener.cs" />
+    <Compile Include="Communications\PatcherAsyncListener.cs" />
     <Compile Include="PatchMethods\InstallerPatchApplier.cs" />
     <Compile Include="Core\ProjectManager.cs" />
     <Compile Include="PatchMethods\PatchMethodBase.cs" />

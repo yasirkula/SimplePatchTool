@@ -8,7 +8,7 @@ using Compression = SevenZip.Compression;
 
 namespace SimplePatchToolCore
 {
-	public enum CompressionFormat { LZMA = 0, GZIP = 1 };
+	public enum CompressionFormat { LZMA = 0, GZIP = 1, NONE = 9 };
 
 	public static class ZipUtils
 	{
@@ -31,13 +31,15 @@ namespace SimplePatchToolCore
 					// Encode the file.
 					coder.Code( input, output, input.Length, -1, null );
 				}
-				else
+				else if( format == CompressionFormat.GZIP )
 				{
 					using( GZipStream compressionStream = new GZipStream( output, CompressionMode.Compress ) )
 					{
 						input.CopyTo( compressionStream );
 					}
 				}
+				else
+					input.CopyTo( output );
 			}
 		}
 
@@ -63,13 +65,15 @@ namespace SimplePatchToolCore
 					coder.SetDecoderProperties( properties );
 					coder.Code( input, output, input.Length, fileLength, null );
 				}
-				else
+				else if( format == CompressionFormat.GZIP )
 				{
 					using( GZipStream decompressionStream = new GZipStream( input, CompressionMode.Decompress ) )
 					{
 						decompressionStream.CopyTo( output );
 					}
 				}
+				else
+					input.CopyTo( output );
 			}
 		}
 

@@ -40,7 +40,7 @@ namespace Octodiff.Core
 
             public static IRollingChecksum Default()
             {
-                return Adler32Rolling(true);
+                return Adler32Rolling();
             }
 
             public static IRollingChecksum Create(string algorithm)

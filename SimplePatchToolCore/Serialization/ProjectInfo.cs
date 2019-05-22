@@ -31,6 +31,8 @@ namespace SimplePatchToolCore
 		[XmlElement( ElementName = "CreateIncrementalPatchesFromEachPreviousVersionToNewVersion" )]
 		public bool CreateAllIncrementalPatches;
 
+		public int BinaryDiffQuality;
+
 		public CompressionFormat CompressionFormatRepairPatch;
 		public CompressionFormat CompressionFormatInstallerPatch;
 		public CompressionFormat CompressionFormatIncrementalPatch;
@@ -49,6 +51,8 @@ namespace SimplePatchToolCore
 			CreateInstallerPatch = true;
 			CreateIncrementalPatch = true;
 			CreateAllIncrementalPatches = false;
+
+			BinaryDiffQuality = 3;
 
 			CompressionFormatRepairPatch = CompressionFormat.LZMA;
 			CompressionFormatInstallerPatch = CompressionFormat.LZMA;

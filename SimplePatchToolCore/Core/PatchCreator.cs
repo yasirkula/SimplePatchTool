@@ -31,6 +31,7 @@ namespace SimplePatchToolCore
 		private readonly string projectName;
 
 		private string previousVersionRoot;
+		private int diffQuality;
 
 		private VersionCode previousVersion;
 		private readonly VersionCode version;
@@ -99,7 +100,9 @@ namespace SimplePatchToolCore
 
 			generateRepairPatch = true;
 			generateInstallerPatch = true;
+
 			previousVersionRoot = null;
+			diffQuality = 0;
 
 			this.previousVersion = null;
 			this.version = version;
@@ -191,7 +194,7 @@ namespace SimplePatchToolCore
 		/// <exception cref = "FileNotFoundException">Previous version's version code does not exist</exception>
 		/// <exception cref = "FormatException">Previous version's version code is not valid</exception>
 		/// <exception cref = "InvalidOperationException">Previous version's version code is greater than or equal to current version's version code</exception>
-		public PatchCreator CreateIncrementalPatch( bool value, string previousVersionRoot = null )
+		public PatchCreator CreateIncrementalPatch( bool value, string previousVersionRoot = null, int diffQuality = 3 )
 		{
 			if( !value || previousVersionRoot == null )
 				this.previousVersionRoot = null;
@@ -216,6 +219,7 @@ namespace SimplePatchToolCore
 					throw new InvalidOperationException( Localization.Get( StringId.E_PreviousVersionXIsNotLessThanY, previousVersion, version ) );
 
 				this.previousVersionRoot = previousVersionRoot;
+				this.diffQuality = diffQuality;
 			}
 
 			return this;
@@ -555,7 +559,7 @@ namespace SimplePatchToolCore
 						{
 							Log( Localization.Get( StringId.CalculatingDiffOfX, fileRelativePath ) );
 
-							OctoUtils.CalculateDelta( targetAbsolutePath, fileInfo.FullName, diffFileAbsolutePath );
+							OctoUtils.CalculateDelta( targetAbsolutePath, fileInfo.FullName, diffFileAbsolutePath, diffQuality );
 							incrementalPatch.Files.Add( new PatchItem( fileRelativePath, prevVersion, fileInfo ) );
 						}
 					}

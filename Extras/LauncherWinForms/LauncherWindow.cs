@@ -40,6 +40,7 @@ namespace LauncherWinForms
 			statusText.Text = string.Empty;
 			progressText.Text = string.Empty;
 			progressBar.Value = 0;
+			overallProgressBar.Value = 0;
 			patchButton.Enabled = false;
 
 			playButton.Click += ( s, e ) => PlayButtonClicked();

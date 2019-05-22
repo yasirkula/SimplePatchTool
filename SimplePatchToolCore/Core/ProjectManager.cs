@@ -299,7 +299,7 @@ namespace SimplePatchToolCore
 					Log( Localization.Get( StringId.CreatingIncrementalPatchX, Path.GetFileName( versions[i] ) + "->" + Path.GetFileName( latestVersion ) ) );
 
 					// Generate incremental patch files
-					patchCreator.CreateIncrementalPatch( true, versions[i] );
+					patchCreator.CreateIncrementalPatch( true, versions[i], projectInfo.BinaryDiffQuality );
 					if( cancel || !ExecuteCurrentPatch() )
 						return PatchResult.Failed;
 
