@@ -43,15 +43,7 @@ namespace SimplePatchToolCore
 			set
 			{
 				m_stage = value;
-
-				if( Listener != null )
-				{
-					try
-					{
-						Listener.PatchStageChanged( value );
-					}
-					catch { }
-				}
+				ListenerCallPatchStageChanged( value );
 			}
 		}
 
@@ -101,13 +93,7 @@ namespace SimplePatchToolCore
 			if( !SilentMode && !Cancel )
 			{
 				if( Listener != null && Listener.ReceiveLogs )
-				{
-					try
-					{
-						Listener.LogReceived( log );
-					}
-					catch { }
-				}
+					ListenerCallLogReceived( log );
 				else
 				{
 					lock( logs )
@@ -156,13 +142,7 @@ namespace SimplePatchToolCore
 			if( !Cancel && LogProgress )
 			{
 				if( Listener != null && Listener.ReceiveProgress )
-				{
-					try
-					{
-						Listener.ProgressChanged( progress );
-					}
-					catch { }
-				}
+					ListenerCallProgressChanged( progress );
 				else
 				{
 					lock( progressLock )
@@ -178,13 +158,7 @@ namespace SimplePatchToolCore
 			if( !Cancel && LogProgress )
 			{
 				if( Listener != null && Listener.ReceiveProgress )
-				{
-					try
-					{
-						Listener.OverallProgressChanged( overallProgress );
-					}
-					catch { }
-				}
+					ListenerCallOverallProgressChanged( overallProgress );
 				else
 				{
 					lock( progressLock )
@@ -309,7 +283,7 @@ namespace SimplePatchToolCore
 			{
 				FileInfo logFile = new FileInfo( RootPath + PatchParameters.LOG_FILE_NAME );
 				fileLogger = new StreamWriter( logFile.FullName, logFile.Exists && logFile.Length < PatchParameters.LOG_FILE_MAX_SIZE );
-				fileLogger.WriteLine( string.Concat( Environment.NewLine, "=== ", DateTime.UtcNow, " ===" ) );
+				fileLogger.WriteLine( string.Concat( Environment.NewLine, "=== ", DateTime.Now, " ===" ) );
 			}
 			catch
 			{
@@ -333,5 +307,115 @@ namespace SimplePatchToolCore
 				fileLogger = null;
 			}
 		}
+
+		#region Listener Methods
+		public void ListenerCallStarted()
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.Started();
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallLogReceived( string log )
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.LogReceived( log );
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallProgressChanged( IOperationProgress progress )
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.ProgressChanged( progress );
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallOverallProgressChanged( IOperationProgress progress )
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.OverallProgressChanged( progress );
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallPatchStageChanged( PatchStage stage )
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.PatchStageChanged( stage );
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallPatchMethodChanged( PatchMethod method )
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.PatchMethodChanged( method );
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallVersionInfoFetched( VersionInfo versionInfo )
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.VersionInfoFetched( versionInfo );
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallVersionFetched( string currentVersion, string newVersion )
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.VersionFetched( currentVersion, newVersion );
+				}
+				catch { }
+			}
+		}
+
+		public void ListenerCallFinished()
+		{
+			if( Listener != null )
+			{
+				try
+				{
+					Listener.Finished();
+				}
+				catch { }
+			}
+		}
+		#endregion
 	}
 }

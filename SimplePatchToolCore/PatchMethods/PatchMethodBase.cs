@@ -10,6 +10,9 @@
 		private float fileOperationsMultiplier;
 		private double downloadSizeMultiplier;
 
+		private int fileOperationsContribution;
+		private int downloadSizeContribution;
+
 		private int completedFileOperations;
 		private long downloadedBytes;
 
@@ -21,20 +24,20 @@
 				if( fileOperationsMultiplier > 0f )
 				{
 					fileOpPercentage = (int) ( completedFileOperations * fileOperationsMultiplier + 0.5f );
-					if( fileOpPercentage > FILE_OPERATIONS_PROGRESS_CONTRIBUTION )
-						fileOpPercentage = FILE_OPERATIONS_PROGRESS_CONTRIBUTION;
+					if( fileOpPercentage > fileOperationsContribution )
+						fileOpPercentage = fileOperationsContribution;
 				}
 				else
-					fileOpPercentage = FILE_OPERATIONS_PROGRESS_CONTRIBUTION;
+					fileOpPercentage = fileOperationsContribution;
 
 				if( downloadSizeMultiplier > 0 )
 				{
 					downloadPercentage = (int) ( downloadedBytes * downloadSizeMultiplier + 0.5 );
-					if( downloadPercentage > DOWNLOAD_SIZE_PROGRESS_CONTRIBUTION )
-						downloadPercentage = DOWNLOAD_SIZE_PROGRESS_CONTRIBUTION;
+					if( downloadPercentage > downloadSizeContribution )
+						downloadPercentage = downloadSizeContribution;
 				}
 				else
-					downloadPercentage = DOWNLOAD_SIZE_PROGRESS_CONTRIBUTION;
+					downloadPercentage = downloadSizeContribution;
 
 				return fileOpPercentage + downloadPercentage;
 			}
@@ -90,13 +93,29 @@
 			completedFileOperations = 0;
 			downloadedBytes = 0L;
 
+			if( numberOfFileOperations == 0 )
+			{
+				fileOperationsContribution = 0;
+				downloadSizeContribution = 100;
+			}
+			else if( expectedDownloadSize == 0 )
+			{
+				fileOperationsContribution = 100;
+				downloadSizeContribution = 0;
+			}
+			else
+			{
+				fileOperationsContribution = FILE_OPERATIONS_PROGRESS_CONTRIBUTION;
+				downloadSizeContribution = DOWNLOAD_SIZE_PROGRESS_CONTRIBUTION;
+			}
+
 			if( numberOfFileOperations > 0 )
-				fileOperationsMultiplier = FILE_OPERATIONS_PROGRESS_CONTRIBUTION / numberOfFileOperations;
+				fileOperationsMultiplier = (float) fileOperationsContribution / numberOfFileOperations;
 			else
 				fileOperationsMultiplier = 0f;
 
 			if( expectedDownloadSize > 0 )
-				downloadSizeMultiplier = DOWNLOAD_SIZE_PROGRESS_CONTRIBUTION / expectedDownloadSize;
+				downloadSizeMultiplier = (double) downloadSizeContribution / expectedDownloadSize;
 			else
 				downloadSizeMultiplier = 0;
 

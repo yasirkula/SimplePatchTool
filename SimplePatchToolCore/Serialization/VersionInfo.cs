@@ -36,7 +36,7 @@ namespace SimplePatchToolCore
 		public List<VersionItem> Files;
 
 		[XmlIgnore]
-		public Regex[] IgnoredPathsRegex;
+		public List<Regex> IgnoredPathsRegex;
 
 		public VersionInfo()
 		{

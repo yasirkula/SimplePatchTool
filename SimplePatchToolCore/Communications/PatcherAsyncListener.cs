@@ -10,6 +10,7 @@ namespace SimplePatchToolCore
 		public delegate void ProgressChangeDelegate( IOperationProgress progress );
 		public delegate void PatchStageChangeDelegate( PatchStage stage );
 		public delegate void PatchMethodChangeDelegate( PatchMethod method );
+		public delegate void VersionInfoFetchDelegate( VersionInfo versionInfo );
 		public delegate void VersionFetchDelegate( string currentVersion, string newVersion );
 		public delegate void NoParameterDelegate();
 
@@ -18,6 +19,7 @@ namespace SimplePatchToolCore
 		public event ProgressChangeDelegate OnOverallProgressChanged;
 		public event PatchStageChangeDelegate OnPatchStageChanged;
 		public event PatchMethodChangeDelegate OnPatchMethodChanged;
+		public event VersionInfoFetchDelegate OnVersionInfoFetched;
 		public event VersionFetchDelegate OnVersionFetched;
 		public event NoParameterDelegate OnStart, OnFinish;
 
@@ -53,9 +55,11 @@ namespace SimplePatchToolCore
 
 		void SimplePatchTool.IListener.Started()
 		{
-			if( !isPatcherRunning )
+			isPatcherRunning = true;
+
+			if( !isThreadRunning )
 			{
-				isPatcherRunning = true;
+				isThreadRunning = true;
 				Initialize();
 			}
 		}
@@ -85,6 +89,15 @@ namespace SimplePatchToolCore
 			pendingMethod = method;
 		}
 
+		void SimplePatchTool.IListener.VersionInfoFetched( VersionInfo versionInfo )
+		{
+			// This is the only callback that blocks SimplePatchTool's thread because 
+			// changes made to the VersionInfo should be committed before SimplePatchTool
+			// starts patching (e.g. adding an ignored path to the VersionInfo)
+			if( OnVersionInfoFetched != null )
+				OnVersionInfoFetched( versionInfo );
+		}
+
 		void SimplePatchTool.IListener.VersionFetched( string currentVersion, string newVersion )
 		{
 			pendingCurrentVersion = currentVersion;
@@ -98,11 +111,11 @@ namespace SimplePatchToolCore
 
 		protected virtual void Initialize()
 		{
-			if( !isThreadRunning )
-			{
-				isThreadRunning = true;
-				PatchUtils.CreateBackgroundThread( new ThreadStart( ThreadRefresherFunction ) ).Start();
-			}
+			PatchUtils.CreateBackgroundThread( new ThreadStart( ThreadRefresherFunction ) ).Start();
+		}
+
+		protected virtual void Terminate()
+		{
 		}
 
 		protected virtual void Sleep()
@@ -112,31 +125,41 @@ namespace SimplePatchToolCore
 
 		private void ThreadRefresherFunction()
 		{
-			try
-			{
-				if( OnStart != null )
-					OnStart();
-			}
-			catch { }
-
-			while( isPatcherRunning )
+			do
 			{
 				try
 				{
-					Refresh();
-					Sleep();
+					if( OnStart != null )
+						OnStart();
 				}
 				catch { }
-			}
 
-			try
-			{
-				if( OnFinish != null )
-					OnFinish();
-			}
-			catch { }
+				while( isPatcherRunning )
+				{
+					try
+					{
+						Refresh();
+						Sleep();
+					}
+					catch { }
+				}
+
+				try
+				{
+					Refresh();
+				}
+				catch { }
+
+				try
+				{
+					if( OnFinish != null )
+						OnFinish();
+				}
+				catch { }
+			} while( isPatcherRunning ); // For example, this object might have been assigned to a new patcher in OnFinish
 
 			isThreadRunning = false;
+			Terminate();
 		}
 
 		protected void Refresh()

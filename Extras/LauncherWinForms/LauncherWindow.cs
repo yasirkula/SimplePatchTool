@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace LauncherWinForms
@@ -43,6 +42,9 @@ namespace LauncherWinForms
 			overallProgressBar.Value = 0;
 			patchButton.Enabled = false;
 
+			string currentVersion = PatchUtils.GetCurrentAppVersion();
+			versionLabel.Text = string.IsNullOrEmpty( currentVersion ) ? "" : ( "v" + currentVersion );
+
 			playButton.Click += ( s, e ) => PlayButtonClicked();
 			patchButton.Click += ( s, e ) => PatchButtonClicked();
 			repairButton.Click += ( s, e ) => RepairButtonClicked();
@@ -58,6 +60,12 @@ namespace LauncherWinForms
 				UpdateProgressbar( progressBar, progress.Percentage );
 			};
 			patcherListener.OnOverallProgressChanged += ( progress ) => UpdateProgressbar( overallProgressBar, progress.Percentage );
+			patcherListener.OnVersionInfoFetched += ( versionInfo ) => versionInfo.AddIgnoredPath( MAINAPP_SUBDIRECTORY + "/" );
+			patcherListener.OnVersionFetched += ( currVersion, newVersion ) =>
+			{
+				if( isPatchingLauncher )
+					UpdateLabel( versionLabel, "v" + currVersion );
+			};
 			patcherListener.OnFinish += () =>
 			{
 				if( patcher.Operation == PatchOperation.CheckingForUpdates )

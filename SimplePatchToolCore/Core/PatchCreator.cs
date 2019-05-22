@@ -117,7 +117,11 @@ namespace SimplePatchToolCore
 			incrementalPatchTempPath = this.outputPath + "Temp" + Path.DirectorySeparatorChar;
 
 			ignoredPaths = new HashSet<string>();
-			ignoredPathsRegex = new List<Regex>() { PatchUtils.WildcardToRegex( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ) }; // Ignore any version holder files
+			ignoredPathsRegex = new List<Regex>()
+			{
+				PatchUtils.WildcardToRegex( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ), // Ignore any version holder files
+				PatchUtils.WildcardToRegex( "*" + PatchParameters.LOG_FILE_NAME ) // Or log files
+			};
 
 			compressionFormatRepairPatch = CompressionFormat.LZMA;
 			compressionFormatInstallerPatch = CompressionFormat.LZMA;

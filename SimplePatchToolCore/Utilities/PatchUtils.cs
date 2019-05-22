@@ -83,11 +83,11 @@ namespace SimplePatchToolCore
 			return false;
 		}
 
-		public static bool PathMatchesPattern( this IEnumerable<Regex> patterns, string path )
+		public static bool PathMatchesPattern( this List<Regex> patterns, string path )
 		{
-			foreach( Regex pattern in patterns )
+			for( int i = 0; i < patterns.Count; i++ )
 			{
-				if( pattern.IsMatch( path ) )
+				if( patterns[i].IsMatch( path ) )
 					return true;
 			}
 
@@ -108,13 +108,19 @@ namespace SimplePatchToolCore
 		{
 			return patchInfo.FromVersion.ToString().Replace( '.', '_' ) + "__" + patchInfo.ToVersion.ToString().Replace( '.', '_' );
 		}
+
+		/// <summary>
+		/// Adds an ignored path to VersionInfo (runtime only)
+		/// </summary>
+		public static void AddIgnoredPath( this VersionInfo versionInfo, string ignoredPath )
+		{
+			versionInfo.IgnoredPathsRegex.Add( WildcardToRegex( ignoredPath.Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) ) );
+		}
 		#endregion
 
 		#region XML Functions
 		public static void SerializeVersionInfoToXML( VersionInfo version, string xmlPath )
 		{
-			version.IgnoredPaths.Remove( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ); // No need to expose this ignored path in the xml
-
 			var serializer = new XmlSerializer( typeof( VersionInfo ) );
 			using( var stream = new FileStream( xmlPath, FileMode.Create ) )
 			{
@@ -144,10 +150,12 @@ namespace SimplePatchToolCore
 						item.Path = item.Path.Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar );
 					}
 
-					result.IgnoredPaths.Add( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX );
-					result.IgnoredPathsRegex = new Regex[result.IgnoredPaths.Count];
+					result.IgnoredPathsRegex = new List<Regex>( result.IgnoredPaths.Count + 2 );
 					for( int i = 0; i < result.IgnoredPaths.Count; i++ )
-						result.IgnoredPathsRegex[i] = WildcardToRegex( result.IgnoredPaths[i].Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) );
+						result.IgnoredPathsRegex.Add( WildcardToRegex( result.IgnoredPaths[i].Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) ) );
+
+					result.IgnoredPathsRegex.Add( WildcardToRegex( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ) );
+					result.IgnoredPathsRegex.Add( WildcardToRegex( "*" + PatchParameters.LOG_FILE_NAME ) );
 				}
 
 				return result;

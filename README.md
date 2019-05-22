@@ -1,6 +1,6 @@
 # Simple Patch Tool
 
-![screenshot](https://raw.githubusercontent.com/yasirkula/UnitySimplePatchTool/master/Images/launcher-winforms.png)
+![screenshot](Images/launcher-winforms.png)
 
 SimplePatchTool is a general-purpose patcher library for **standalone** applications.
 
@@ -8,7 +8,7 @@ SimplePatchTool is a general-purpose patcher library for **standalone** applicat
 
 - written completely in **C#**
 - supports **repair patching** as well as **binary diff patching**
-- gives you complete control over where you store the patch files at (you can even host your files on Google Drive™)
+- gives you complete control over where the patch files will be stored (you can even host your files on Google Drive™)
 - supports self patching (e.g. launcher patching itself)
 - does not request admin permissions unless necessary
 - supports encrypting/signing important patch files as an additional layer of security
@@ -32,6 +32,6 @@ Wiki available at: https://github.com/yasirkula/SimplePatchTool/wiki
 
 ## ROADMAP
 
-- add another patch method that packs all files in the version into a single compressed archive
-- calculate percentage of the overall progress
-- calculate the estimated remaining time
+- [x] add another patch method that packs all files in the version into a single compressed archive
+- [x] calculate percentage of the overall progress
+- [ ] calculate the estimated remaining time

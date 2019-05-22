@@ -49,6 +49,7 @@ namespace SimplePatchToolCore
 			void OverallProgressChanged( IOperationProgress progress );
 			void PatchStageChanged( PatchStage stage );
 			void PatchMethodChanged( PatchMethod method );
+			void VersionInfoFetched( VersionInfo versionInfo );
 			void VersionFetched( string currentVersion, string newVersion );
 			void Finished();
 		}
@@ -174,14 +175,8 @@ namespace SimplePatchToolCore
 		public SimplePatchTool SetListener( IListener listener )
 		{
 			comms.Listener = listener;
-			if( listener != null && IsRunning )
-			{
-				try
-				{
-					listener.Started();
-				}
-				catch { }
-			}
+			if( IsRunning )
+				comms.ListenerCallStarted();
 
 			return this;
 		}
@@ -331,6 +326,7 @@ namespace SimplePatchToolCore
 		public bool ApplySelfPatch( string selfPatcherExecutable, string postSelfPatchExecutable = null )
 		{
 			comms.InitializeFileLogger();
+			comms.ListenerCallStarted();
 
 			try
 			{
@@ -370,6 +366,7 @@ namespace SimplePatchToolCore
 			}
 			finally
 			{
+				comms.ListenerCallFinished();
 				comms.DisposeFileLogger();
 			}
 
@@ -380,15 +377,7 @@ namespace SimplePatchToolCore
 		private void ThreadCheckForUpdatesFunction( object checkVersionOnlyParameter )
 		{
 			comms.InitializeFileLogger();
-
-			if( comms.Listener != null )
-			{
-				try
-				{
-					comms.Listener.Started();
-				}
-				catch { }
-			}
+			comms.ListenerCallStarted();
 
 			try
 			{
@@ -409,31 +398,16 @@ namespace SimplePatchToolCore
 			else
 				comms.Log( comms.FailDetails );
 
-			if( comms.Listener != null )
-			{
-				try
-				{
-					comms.Listener.Finished();
-				}
-				catch { }
-			}
-
+			comms.ListenerCallFinished();
 			comms.DisposeFileLogger();
+
 			IsRunning = false;
 		}
 
 		private void ThreadPatchFunction()
 		{
 			comms.InitializeFileLogger();
-
-			if( comms.Listener != null )
-			{
-				try
-				{
-					comms.Listener.Started();
-				}
-				catch { }
-			}
+			comms.ListenerCallStarted();
 
 			try
 			{
@@ -453,16 +427,9 @@ namespace SimplePatchToolCore
 			else
 				comms.Log( comms.FailDetails );
 
-			if( comms.Listener != null )
-			{
-				try
-				{
-					comms.Listener.Finished();
-				}
-				catch { }
-			}
-
+			comms.ListenerCallFinished();
 			comms.DisposeFileLogger();
+
 			IsRunning = false;
 		}
 
@@ -739,29 +706,26 @@ namespace SimplePatchToolCore
 			{
 				PatchMethod patchMethod = preferredPatchMethods[i].method;
 
-				if( comms.Listener != null )
-				{
-					try
-					{
-						comms.Listener.PatchMethodChanged( patchMethod );
-					}
-					catch { }
-				}
-
 				bool success;
 				if( patchMethod == PatchMethod.RepairPatch )
 				{
 					PatchMethod = PatchMethod.RepairPatch;
+					comms.ListenerCallPatchMethodChanged( PatchMethod );
+
 					success = PatchUsingRepairPatch();
 				}
 				else if( patchMethod == PatchMethod.IncrementalPatch )
 				{
 					PatchMethod = PatchMethod.IncrementalPatch;
+					comms.ListenerCallPatchMethodChanged( PatchMethod );
+
 					success = PatchUsingIncrementalPatches();
 				}
 				else
 				{
 					PatchMethod = PatchMethod.InstallerPatch;
+					comms.ListenerCallPatchMethodChanged( PatchMethod );
+
 					success = PatchUsingInstallerPatch();
 				}
 
@@ -885,22 +849,35 @@ namespace SimplePatchToolCore
 				sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( versionHolderFilename ).Append( separator ).Append( comms.RootPath ).Append( versionHolderFilename );
 
 				// 3. Delete obsolete files
-				string selfPatcherDirectory = PatchParameters.SELF_PATCHER_DIRECTORY + Path.DirectorySeparatorChar;
-				sb.Append( separator ).Append( PatchParameters.SELF_PATCH_DELETE_OP );
-				for( int i = 0; i < obsoleteFiles.Count; i++ )
+				if( obsoleteFiles.Count > 0 )
 				{
-					// Delete the obsolete files inside SELF_PATCHER_DIRECTORY manually
-					string absolutePath = comms.RootPath + obsoleteFiles[i];
-					if( obsoleteFiles[i].StartsWith( selfPatcherDirectory, StringComparison.OrdinalIgnoreCase ) )
+					string selfPatcherDirectory = PatchParameters.SELF_PATCHER_DIRECTORY + Path.DirectorySeparatorChar;
+					sb.Append( separator ).Append( PatchParameters.SELF_PATCH_DELETE_OP );
+
+					comms.Log( Localization.Get( StringId.DeletingXObsoleteFiles, obsoleteFiles.Count ) );
+					for( int i = 0; i < obsoleteFiles.Count; i++ )
 					{
-						if( File.Exists( absolutePath ) )
-							File.Delete( absolutePath );
-						else if( Directory.Exists( absolutePath ) )
-							PatchUtils.DeleteDirectory( absolutePath );
+						// Delete the obsolete files inside SELF_PATCHER_DIRECTORY manually
+						string absolutePath = comms.RootPath + obsoleteFiles[i];
+						if( obsoleteFiles[i].StartsWith( selfPatcherDirectory, StringComparison.OrdinalIgnoreCase ) )
+						{
+							comms.Log( Localization.Get( StringId.DeletingX, obsoleteFiles[i] ) );
+
+							if( File.Exists( absolutePath ) )
+								File.Delete( absolutePath );
+							else if( Directory.Exists( absolutePath ) )
+								PatchUtils.DeleteDirectory( absolutePath );
+						}
+						else
+						{
+							// '-->' indicates that the file will be deleted by the self patcher executable
+							comms.LogToFile( Localization.Get( StringId.DeletingX, "--> " + obsoleteFiles[i] ) );
+							sb.Append( separator ).Append( absolutePath );
+						}
 					}
-					else
-						sb.Append( separator ).Append( absolutePath );
 				}
+				else
+					comms.Log( Localization.Get( StringId.NoObsoleteFiles ) );
 
 				sb.Append( separator ).Append( comms.CachePath );
 
@@ -960,20 +937,14 @@ namespace SimplePatchToolCore
 			incrementalPatchesInfo.Clear();
 			filesInVersion.Clear();
 
+			comms.ListenerCallVersionInfoFetched( comms.VersionInfo );
+
 			List<VersionItem> versionInfoFiles = comms.VersionInfo.Files;
 			for( int i = 0; i < versionInfoFiles.Count; i++ )
 				filesInVersion.Add( versionInfoFiles[i].Path );
 
 			currentVersion = PatchUtils.GetVersion( comms.RootPath, comms.VersionInfo.Name );
-
-			if( comms.Listener != null )
-			{
-				try
-				{
-					comms.Listener.VersionFetched( currentVersion, comms.VersionInfo.Version );
-				}
-				catch { }
-			}
+			comms.ListenerCallVersionFetched( currentVersion, comms.VersionInfo.Version );
 
 			return true;
 		}

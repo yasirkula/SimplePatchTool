@@ -35,13 +35,16 @@
 			this.overallProgressBar = new System.Windows.Forms.ProgressBar();
 			this.progressText = new System.Windows.Forms.Label();
 			this.topPanel = new System.Windows.Forms.TableLayoutPanel();
-			this.repairButton = new System.Windows.Forms.Label();
 			this.patchNotesGroup = new System.Windows.Forms.GroupBox();
 			this.patchNotesText = new System.Windows.Forms.TextBox();
 			this.playButton = new System.Windows.Forms.Button();
+			this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+			this.versionLabel = new System.Windows.Forms.Label();
+			this.repairButton = new System.Windows.Forms.Label();
 			this.bottomPanel.SuspendLayout();
 			this.topPanel.SuspendLayout();
 			this.patchNotesGroup.SuspendLayout();
+			this.tableLayoutPanel1.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// progressBar
@@ -134,9 +137,9 @@
 			this.topPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(92)))), ((int)(((byte)(92)))), ((int)(((byte)(92)))));
 			this.topPanel.ColumnCount = 1;
 			this.topPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-			this.topPanel.Controls.Add(this.repairButton, 0, 0);
 			this.topPanel.Controls.Add(this.patchNotesGroup, 0, 1);
 			this.topPanel.Controls.Add(this.playButton, 0, 2);
+			this.topPanel.Controls.Add(this.tableLayoutPanel1, 0, 0);
 			this.topPanel.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.topPanel.Location = new System.Drawing.Point(0, 0);
 			this.topPanel.Name = "topPanel";
@@ -145,20 +148,10 @@
 			this.topPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
 			this.topPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
 			this.topPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 86F));
+			this.topPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+			this.topPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
 			this.topPanel.Size = new System.Drawing.Size(782, 348);
 			this.topPanel.TabIndex = 4;
-			// 
-			// repairButton
-			// 
-			this.repairButton.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.repairButton.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Underline))), System.Drawing.GraphicsUnit.Point, ((byte)(162)));
-			this.repairButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
-			this.repairButton.Location = new System.Drawing.Point(9, 6);
-			this.repairButton.Name = "repairButton";
-			this.repairButton.Size = new System.Drawing.Size(764, 20);
-			this.repairButton.TabIndex = 6;
-			this.repairButton.Text = "Repair Game";
-			this.repairButton.TextAlign = System.Drawing.ContentAlignment.TopRight;
 			// 
 			// patchNotesGroup
 			// 
@@ -209,6 +202,46 @@
 			this.playButton.Text = "PLAY";
 			this.playButton.UseVisualStyleBackColor = false;
 			// 
+			// tableLayoutPanel1
+			// 
+			this.tableLayoutPanel1.ColumnCount = 2;
+			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+			this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+			this.tableLayoutPanel1.Controls.Add(this.versionLabel, 0, 0);
+			this.tableLayoutPanel1.Controls.Add(this.repairButton, 1, 0);
+			this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.tableLayoutPanel1.Location = new System.Drawing.Point(6, 6);
+			this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
+			this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+			this.tableLayoutPanel1.RowCount = 1;
+			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+			this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+			this.tableLayoutPanel1.Size = new System.Drawing.Size(770, 20);
+			this.tableLayoutPanel1.TabIndex = 7;
+			// 
+			// versionLabel
+			// 
+			this.versionLabel.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.versionLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(162)));
+			this.versionLabel.ForeColor = System.Drawing.Color.White;
+			this.versionLabel.Location = new System.Drawing.Point(3, 0);
+			this.versionLabel.Name = "versionLabel";
+			this.versionLabel.Size = new System.Drawing.Size(379, 20);
+			this.versionLabel.TabIndex = 8;
+			this.versionLabel.Text = "v1.0";
+			// 
+			// repairButton
+			// 
+			this.repairButton.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.repairButton.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Underline))), System.Drawing.GraphicsUnit.Point, ((byte)(162)));
+			this.repairButton.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
+			this.repairButton.Location = new System.Drawing.Point(388, 0);
+			this.repairButton.Name = "repairButton";
+			this.repairButton.Size = new System.Drawing.Size(379, 20);
+			this.repairButton.TabIndex = 7;
+			this.repairButton.Text = "Repair Game";
+			this.repairButton.TextAlign = System.Drawing.ContentAlignment.TopRight;
+			// 
 			// LauncherWindow
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -224,6 +257,7 @@
 			this.topPanel.ResumeLayout(false);
 			this.patchNotesGroup.ResumeLayout(false);
 			this.patchNotesGroup.PerformLayout();
+			this.tableLayoutPanel1.ResumeLayout(false);
 			this.ResumeLayout(false);
 
 		}
@@ -235,11 +269,13 @@
 		private System.Windows.Forms.TableLayoutPanel bottomPanel;
 		private System.Windows.Forms.Label progressText;
 		private System.Windows.Forms.TableLayoutPanel topPanel;
-		private System.Windows.Forms.Label repairButton;
 		private System.Windows.Forms.GroupBox patchNotesGroup;
 		private System.Windows.Forms.TextBox patchNotesText;
 		private System.Windows.Forms.Button playButton;
 		private System.Windows.Forms.ProgressBar overallProgressBar;
+		private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
+		private System.Windows.Forms.Label versionLabel;
+		private System.Windows.Forms.Label repairButton;
 	}
 }
 
