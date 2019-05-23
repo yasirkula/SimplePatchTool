@@ -6,6 +6,7 @@ namespace SimplePatchToolCore
 	public enum StringId
 	{
 		AllFilesAreDownloadedInXSeconds,
+		AllPatchesCreatedInXSeconds,
 		AlreadyUpToDateXthFile,
 		ApplyingIncrementalPatch,
 		ApplyingInstallerPatch,
@@ -207,6 +208,7 @@ namespace SimplePatchToolCore
 			Strings.Clear();
 
 			Strings[StringId.AllFilesAreDownloadedInXSeconds] = "All files are successfully downloaded in {0} seconds";
+			Strings[StringId.AllPatchesCreatedInXSeconds] = "...All patches created in {0} seconds...";
 			Strings[StringId.AlreadyUpToDateXthFile] = "{0}/{1} Already up-to-date: {2}";
 			Strings[StringId.ApplyingIncrementalPatch] = "Applying incremental patch";
 			Strings[StringId.ApplyingInstallerPatch] = "Applying installer patch";
@@ -301,6 +303,7 @@ namespace SimplePatchToolCore
 			Strings.Clear();
 
 			Strings[StringId.AllFilesAreDownloadedInXSeconds] = "Tüm dosyalar {0} saniyede başarılı bir şekilde indirildi";
+			Strings[StringId.AllPatchesCreatedInXSeconds] = "...Tüm patch'ler {0} saniyede oluşturuldu...";
 			Strings[StringId.AlreadyUpToDateXthFile] = "{0}/{1} Zaten güncel: {2}";
 			Strings[StringId.ApplyingIncrementalPatch] = "Incremental patch uygulanıyor";
 			Strings[StringId.ApplyingInstallerPatch] = "Installer patch uygulanıyor";

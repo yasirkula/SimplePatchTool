@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
@@ -92,6 +93,8 @@ namespace SimplePatchToolCore
 
 			PatchUtils.SerializeProjectInfoToXML( new ProjectInfo(), projectInfoPath );
 			File.WriteAllText( downloadLinksPath, "PASTE DOWNLOAD LINKS OF THE PATCH FILES HERE" );
+
+			Result = PatchResult.Success;
 		}
 
 		/// <exception cref = "FileNotFoundException">A necessary file does not exist</exception>
@@ -102,7 +105,12 @@ namespace SimplePatchToolCore
 
 			PatchUpdater patchUpdater = new PatchUpdater( outputPath + PatchParameters.VERSION_INFO_FILENAME, Log );
 			if( patchUpdater.UpdateDownloadLinks( downloadLinksPath ) )
+			{
 				patchUpdater.SaveChanges();
+				Result = PatchResult.Success;
+			}
+			else
+				Result = PatchResult.Failed;
 		}
 
 		public string[] GetXMLFiles( bool includeVersionInfo = true, bool includePatchInfos = true )
@@ -234,6 +242,8 @@ namespace SimplePatchToolCore
 				return PatchResult.Failed;
 			}
 
+			Stopwatch timer = Stopwatch.StartNew();
+
 			// Here's how it works:
 			// Move previous incremental patch files to Temp\IncrementalFormer
 			// Generate repair patch and installer patch files on Temp\Output
@@ -341,6 +351,7 @@ namespace SimplePatchToolCore
 
 			PatchUtils.DeleteDirectory( tempRoot );
 
+			Log( Localization.Get( StringId.AllPatchesCreatedInXSeconds, timer.ElapsedSeconds() ) );
 			return PatchResult.Success;
 		}
 

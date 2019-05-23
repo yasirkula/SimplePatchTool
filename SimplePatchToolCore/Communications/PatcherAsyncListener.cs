@@ -23,8 +23,8 @@ namespace SimplePatchToolCore
 		public event VersionFetchDelegate OnVersionFetched;
 		public event NoParameterDelegate OnStart, OnFinish;
 
-		public bool ReceiveLogs { get { return true; } }
-		public bool ReceiveProgress { get { return true; } }
+		bool SimplePatchTool.IListener.ReceiveLogs { get { return true; } }
+		bool SimplePatchTool.IListener.ReceiveProgress { get { return true; } }
 
 		public int RefreshInterval { get; set; }
 
@@ -38,7 +38,7 @@ namespace SimplePatchToolCore
 		private bool isInitialized;
 		private bool isPatcherRunning;
 
-		private object threadLock;
+		private readonly object threadLock;
 
 		public PatcherAsyncListener()
 		{
