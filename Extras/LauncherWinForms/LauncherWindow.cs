@@ -156,11 +156,18 @@ namespace LauncherWinForms
 
 		private void ExecutePatch()
 		{
-			if( patcher.Run( isPatchingLauncher ) )
+			if( patcher.Operation == PatchOperation.ApplyingSelfPatch )
+				ApplySelfPatch();
+			else if( patcher.Run( isPatchingLauncher ) )
 			{
 				ButtonSetEnabled( patchButton, false );
 				ButtonSetEnabled( playButton, false );
 			}
+		}
+
+		private void ApplySelfPatch()
+		{
+			patcher.ApplySelfPatch( Path.Combine( launcherDirectory, selfPatcherPath ), PatchUtils.GetCurrentExecutablePath() );
 		}
 
 		private void CheckForUpdatesFinished()
@@ -198,7 +205,7 @@ namespace LauncherWinForms
 				// If patcher was self patching the launcher, start the self patcher executable
 				// Otherwise, we have just updated the main app successfully
 				if( patcher.Operation == PatchOperation.SelfPatching )
-					patcher.ApplySelfPatch( Path.Combine( launcherDirectory, selfPatcherPath ), PatchUtils.GetCurrentExecutablePath() );
+					ApplySelfPatch();
 			}
 			else
 			{

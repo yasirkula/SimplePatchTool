@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace SimplePatchToolCore
 {
-	public enum PatchOperation { Patching, SelfPatching, CheckingForUpdates }
+	public enum PatchOperation { CheckingForUpdates, Patching, SelfPatching, ApplyingSelfPatch }
 	public enum PatchMethod { None, RepairPatch, IncrementalPatch, InstallerPatch }
 	public enum PatchResult { Failed, Success, AlreadyUpToDate }
 	public enum PatchStage
@@ -29,7 +29,8 @@ namespace SimplePatchToolCore
 		DownloadError, CorruptDownloadError,
 		FileDoesNotExistOnServer, FileIsNotValidOnServer,
 		XmlDeserializeError, InvalidVersionCode,
-		CantVerifyVersionInfo, CantVerifyPatchInfo
+		CantVerifyVersionInfo, CantVerifyPatchInfo,
+		SelfPatcherNotFound
 	}
 
 	public delegate IDownloadHandler DownloadHandlerFactory();
@@ -168,6 +169,7 @@ namespace SimplePatchToolCore
 			UseCustomFreeSpaceCalculator( null );
 
 			IsRunning = false;
+			Operation = PatchOperation.CheckingForUpdates;
 			PatchMethod = PatchMethod.None;
 			Result = PatchResult.Failed;
 		}
@@ -325,6 +327,9 @@ namespace SimplePatchToolCore
 		// Starts specified self patcher executable with required parameters
 		public bool ApplySelfPatch( string selfPatcherExecutable, string postSelfPatchExecutable = null )
 		{
+			IsRunning = true;
+			Operation = PatchOperation.ApplyingSelfPatch;
+
 			comms.InitializeFileLogger();
 			comms.ListenerCallStarted();
 
@@ -336,14 +341,25 @@ namespace SimplePatchToolCore
 
 				if( !File.Exists( selfPatcherExecutable ) )
 				{
-					comms.Log( Localization.Get( StringId.E_SelfPatcherDoesNotExist ) );
+					Result = PatchResult.Failed;
+					FailReason = PatchFailReason.SelfPatcherNotFound;
+					FailDetails = Localization.Get( StringId.E_SelfPatcherDoesNotExist );
+
+					comms.Log( comms.FailDetails );
 					return false;
 				}
 
 				string instructionsPath = comms.CachePath + PatchParameters.SELF_PATCH_INSTRUCTIONS_FILENAME;
 				string completedInstructionsPath = comms.CachePath + PatchParameters.SELF_PATCH_COMPLETED_INSTRUCTIONS_FILENAME;
 				if( !File.Exists( instructionsPath ) )
+				{
+					Result = PatchResult.Failed;
+					FailReason = PatchFailReason.Unknown;
+					FailDetails = "";
+
+					comms.LogToFile( Localization.Get( StringId.E_XDoesNotExist, instructionsPath ) );
 					return false;
+				}
 
 				FileInfo selfPatcher = new FileInfo( selfPatcherExecutable );
 
@@ -358,14 +374,21 @@ namespace SimplePatchToolCore
 				};
 
 				Process.Start( startInfo );
+				Result = PatchResult.Success;
 			}
 			catch( Exception e )
 			{
+				Result = PatchResult.Failed;
+				FailReason = PatchFailReason.FatalException;
+				FailDetails = e.ToString();
+
 				comms.LogToFile( e );
 				return false;
 			}
 			finally
 			{
+				IsRunning = false;
+
 				comms.ListenerCallFinished();
 				comms.DisposeFileLogger();
 			}
@@ -659,7 +682,7 @@ namespace SimplePatchToolCore
 			}
 
 			// Check if there is enough free disk space
-			long requiredFreeSpaceInCache = 0L, requiredFreeSpaceInRoot = 0L;
+			long requiredFreeSpaceInCache = preferredPatchMethods[0].size, requiredFreeSpaceInRoot = 0L;
 			for( int i = 0; i < versionInfoFiles.Count; i++ )
 			{
 				VersionItem item = versionInfoFiles[i];
