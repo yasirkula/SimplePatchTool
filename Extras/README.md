@@ -14,10 +14,10 @@ An example implementation of a console-based self patcher executable. It depends
 
 A WinForms-based self patcher executable implementation. It depends on the SelfPatcherCore project.
 
-![self-patcher-winforms](Images/selfpatcher-winforms.png)
+![self-patcher-winforms](../Images/selfpatcher-winforms.png)
 
 ## LauncherWinForms
 
 A WinForms-based example launcher implementation. It depends on the SimplePatchToolCore project. You should update the values of the constants in [LauncherWindow.cs](LauncherWinForms/LauncherWindow.cs) before the launcher becomes functional. See the [wiki](https://github.com/yasirkula/SimplePatchTool/wiki/Launcher-Tutorial) for a quick tutorial.
 
-![launcher-winforms](Images/launcher-winforms.png)
+![launcher-winforms](../Images/launcher-winforms.png)
