@@ -28,19 +28,24 @@ namespace SimplePatchToolCore
 
 		public int RefreshInterval { get; set; }
 
+		private bool pendingStart, pendingFinish;
 		private string pendingLog;
 		private IOperationProgress pendingProgress, pendingOverallProgress;
 		private PatchStage? pendingStage;
 		private PatchMethod? pendingMethod;
 		private string pendingCurrentVersion, pendingNewVersion;
 
-		private bool isThreadRunning;
+		private bool isInitialized;
 		private bool isPatcherRunning;
+
+		private object threadLock;
 
 		public PatcherAsyncListener()
 		{
 			RefreshInterval = DEFAULT_REFRESH_INTERVAL;
 
+			pendingStart = false;
+			pendingFinish = false;
 			pendingLog = null;
 			pendingProgress = null;
 			pendingOverallProgress = null;
@@ -49,17 +54,24 @@ namespace SimplePatchToolCore
 			pendingCurrentVersion = null;
 			pendingNewVersion = null;
 
-			isThreadRunning = false;
+			isInitialized = false;
 			isPatcherRunning = false;
+
+			threadLock = new object();
 		}
 
 		void SimplePatchTool.IListener.Started()
 		{
-			isPatcherRunning = true;
-
-			if( !isThreadRunning )
+			lock( threadLock )
 			{
-				isThreadRunning = true;
+				isPatcherRunning = true;
+				pendingStart = true;
+				pendingFinish = false;
+			}
+
+			if( !isInitialized )
+			{
+				isInitialized = true;
 				Initialize();
 			}
 		}
@@ -106,7 +118,11 @@ namespace SimplePatchToolCore
 
 		void SimplePatchTool.IListener.Finished()
 		{
-			isPatcherRunning = false;
+			lock( threadLock )
+			{
+				isPatcherRunning = false;
+				pendingFinish = true;
+			}
 		}
 
 		protected virtual void Initialize()
@@ -114,56 +130,50 @@ namespace SimplePatchToolCore
 			PatchUtils.CreateBackgroundThread( new ThreadStart( ThreadRefresherFunction ) ).Start();
 		}
 
-		protected virtual void Terminate()
-		{
-		}
-
-		protected virtual void Sleep()
-		{
-			Thread.Sleep( RefreshInterval );
-		}
-
 		private void ThreadRefresherFunction()
 		{
-			do
+			while( Refresh() )
+				Thread.Sleep( RefreshInterval );
+		}
+
+		protected bool Refresh()
+		{
+			try
+			{
+				RefreshInternal();
+			}
+			catch { }
+
+			bool shouldContinue;
+			lock( threadLock )
+			{
+				shouldContinue = isPatcherRunning;
+				isInitialized = isPatcherRunning;
+			}
+
+			// Refresh once more, just in case
+			if( !shouldContinue )
 			{
 				try
 				{
-					if( OnStart != null )
-						OnStart();
+					RefreshInternal();
 				}
 				catch { }
+			}
 
-				while( isPatcherRunning )
-				{
-					try
-					{
-						Refresh();
-						Sleep();
-					}
-					catch { }
-				}
-
-				try
-				{
-					Refresh();
-				}
-				catch { }
-
-				try
-				{
-					if( OnFinish != null )
-						OnFinish();
-				}
-				catch { }
-			} while( isPatcherRunning ); // For example, this object might have been assigned to a new patcher in OnFinish
-
-			isThreadRunning = false;
-			Terminate();
+			return shouldContinue;
 		}
 
-		protected void Refresh()
+		private void RefreshInternal()
 		{
+			if( pendingStart )
+			{
+				if( OnStart != null )
+					OnStart();
+
+				pendingStart = false;
+			}
+
 			if( pendingLog != null )
 			{
 				if( OnLogReceived != null )
@@ -211,6 +221,14 @@ namespace SimplePatchToolCore
 
 				pendingCurrentVersion = null;
 				pendingNewVersion = null;
+			}
+
+			if( pendingFinish )
+			{
+				if( OnFinish != null )
+					OnFinish();
+
+				pendingFinish = false;
 			}
 		}
 	}
