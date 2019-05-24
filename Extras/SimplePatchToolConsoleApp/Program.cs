@@ -110,8 +110,9 @@ namespace SimplePatchToolConsoleApp
 				name = "create",
 				requiredArgs = new string[] { "root", "out", "name", "version" },
 				requiredArgsDescriptions = new string[] { "Root path", "Output path", "Project name", "Version" },
-				optionalArgs = new string[] { "prevRoot", "ignoredPaths", "compressionRepair", "compressionInstaller", "compressionIncremental", "dontCreateRepairPatch", "silent" },
-				optionalArgsDescriptions = new string[] { "Previous version path", "Path of ignored paths list", "Repair patch's compression format (LZMA/GZIP)", "Installer patch's compression format (LZMA/GZIP)", "Incremental patch's compression format (LZMA/GZIP)", "", "" },
+				optionalArgs = new string[] { "prevRoot", "ignoredPaths", "compressionRepair", "compressionInstaller", "compressionIncremental", "dontCreateRepairPatch", "dontCreateInstallerPatch", "silent" },
+				optionalArgsDescriptions = new string[] { "Previous version path", "Path of ignored paths list", "Repair patch's compression format (LZMA/GZIP/NONE)",
+					"Installer patch's compression format (LZMA/GZIP/NONE)", "Incremental patch's compression format (LZMA/GZIP/NONE)", "", "", "" },
 				hidden = true,
 				function = CreatePatch
 			},
@@ -300,14 +301,37 @@ namespace SimplePatchToolConsoleApp
 		private static void CreatePatch()
 		{
 			string prevRoot = GetArgument( "prevRoot" );
+			string compRepair = GetArgument( "compressionRepair" );
+			string compInstaller = GetArgument( "compressionInstaller" );
+			string compIncremental = GetArgument( "compressionIncremental" );
 
-			CompressionFormat repairCompression = GetArgument( "compressionRepair" ) == "GZIP" ? CompressionFormat.GZIP : CompressionFormat.LZMA;
-			CompressionFormat installerCompression = GetArgument( "compressionInstaller" ) == "GZIP" ? CompressionFormat.GZIP : CompressionFormat.LZMA;
-			CompressionFormat incrementalCompression = GetArgument( "compressionIncremental" ) == "GZIP" ? CompressionFormat.GZIP : CompressionFormat.LZMA;
+			CompressionFormat repairCompression, installerCompression, incrementalCompression;
+
+			if( compRepair == "GZIP" )
+				repairCompression = CompressionFormat.GZIP;
+			else if( compRepair == "NONE" )
+				repairCompression = CompressionFormat.NONE;
+			else
+				repairCompression = CompressionFormat.LZMA;
+
+			if( compInstaller == "GZIP" )
+				installerCompression = CompressionFormat.GZIP;
+			else if( compInstaller == "NONE" )
+				installerCompression = CompressionFormat.NONE;
+			else
+				installerCompression = CompressionFormat.LZMA;
+
+			if( compIncremental == "GZIP" )
+				incrementalCompression = CompressionFormat.GZIP;
+			else if( compIncremental == "NONE" )
+				incrementalCompression = CompressionFormat.NONE;
+			else
+				incrementalCompression = CompressionFormat.LZMA;
 
 			PatchCreator patchCreator = new PatchCreator( GetArgument( "root" ), GetArgument( "out" ), GetArgument( "name" ), GetArgument( "version" ) ).
 				LoadIgnoredPathsFromFile( GetArgument( "ignoredPaths" ) ).SetCompressionFormat( repairCompression, installerCompression, incrementalCompression ).
-				CreateRepairPatch( !HasArgument( "dontCreateRepairPatch" ) ).CreateIncrementalPatch( prevRoot != null, prevRoot ).SilentMode( HasArgument( "silent" ) );
+				CreateRepairPatch( !HasArgument( "dontCreateRepairPatch" ) ).CreateIncrementalPatch( prevRoot != null, prevRoot ).
+				CreateInstallerPatch( !HasArgument( "dontCreateInstallerPatch" ) ).SilentMode( HasArgument( "silent" ) );
 			bool hasStarted = patchCreator.Run();
 			if( hasStarted )
 			{

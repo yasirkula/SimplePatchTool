@@ -13,7 +13,7 @@ namespace LauncherWinForms
 		private const string MAINAPP_VERSIONINFO_URL = ""; // see: https://github.com/yasirkula/SimplePatchTool/wiki/Generating-versionInfoURL
 		private const string MAINAPP_SUBDIRECTORY = "MainApp";
 		private const string MAINAPP_EXECUTABLE = "MainApp.exe"; // Main app executable will be located at {APPLICATION_DIRECTORY}/MainApp/MainApp.exe
-		private const string SELF_PATCHER_EXECUTABLE = "SelfPatcher.exe"; // Self patcher executable will be located at {APPLICATION_DIRECTORY}/SPPatcher/SelfPatcher.exe
+		private const string SELF_PATCHER_EXECUTABLE = "SelfPatcher.exe"; // Self patcher executable will be located at {APPLICATION_DIRECTORY}/{PatchParameters.SELF_PATCHER_DIRECTORY}/SelfPatcher.exe
 		private const string PATCH_NOTES_URL = "http://websitetips.com/articles/copy/lorem/ipsum.txt";
 
 		private readonly string launcherDirectory;
@@ -33,7 +33,7 @@ namespace LauncherWinForms
 
 			launcherDirectory = Path.GetDirectoryName( PatchUtils.GetCurrentExecutablePath() );
 			mainAppDirectory = Path.Combine( launcherDirectory, MAINAPP_SUBDIRECTORY );
-			selfPatcherPath = string.Concat( PatchParameters.SELF_PATCHER_DIRECTORY, Path.DirectorySeparatorChar, SELF_PATCHER_EXECUTABLE );
+			selfPatcherPath = PatchUtils.GetDefaultSelfPatcherExecutablePath( SELF_PATCHER_EXECUTABLE );
 
 			patchNotesText.Text = string.Empty;
 			statusText.Text = string.Empty;
@@ -167,7 +167,7 @@ namespace LauncherWinForms
 
 		private void ApplySelfPatch()
 		{
-			patcher.ApplySelfPatch( Path.Combine( launcherDirectory, selfPatcherPath ), PatchUtils.GetCurrentExecutablePath() );
+			patcher.ApplySelfPatch( selfPatcherPath, PatchUtils.GetCurrentExecutablePath() );
 		}
 
 		private void CheckForUpdatesFinished()

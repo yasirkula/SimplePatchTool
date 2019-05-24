@@ -92,7 +92,7 @@ namespace SimplePatchToolCore
 
 			if( Directory.Exists( outputPath ) )
 			{
-				if( Directory.GetFiles( outputPath ).Length > 0 || Directory.GetDirectories( outputPath ).Length > 0 )
+				if( Directory.GetFileSystemEntries( outputPath ).Length > 0 )
 					throw new IOException( Localization.Get( StringId.E_DirectoryXIsNotEmpty, outputPath ) );
 			}
 

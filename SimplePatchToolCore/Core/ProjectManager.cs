@@ -8,6 +8,14 @@ namespace SimplePatchToolCore
 {
 	public class ProjectManager : PatchCreator.IListener
 	{
+		public interface IListener
+		{
+			bool ReceiveLogs { get; }
+
+			void LogReceived( string log );
+			void Finished();
+		}
+
 		private class VersionComparer : IComparer<string>
 		{
 			public int Compare( string x, string y )
@@ -23,6 +31,8 @@ namespace SimplePatchToolCore
 				return v1.CompareTo( v2 );
 			}
 		}
+
+		private IListener listener;
 
 		private readonly string projectRoot;
 		private readonly string versionsPath;
@@ -77,12 +87,18 @@ namespace SimplePatchToolCore
 			Result = PatchResult.Failed;
 		}
 
+		public ProjectManager SetListener( IListener listener )
+		{
+			this.listener = listener;
+			return this;
+		}
+
 		/// <exception cref = "IOException">Project root is not empty</exception>
 		public void CreateProject()
 		{
 			if( Directory.Exists( projectRoot ) )
 			{
-				if( Directory.GetFiles( projectRoot ).Length > 0 || Directory.GetDirectories( projectRoot ).Length > 0 )
+				if( Directory.GetFileSystemEntries( projectRoot ).Length > 0 )
 					throw new IOException( Localization.Get( StringId.E_DirectoryXIsNotEmpty, projectRoot ) );
 			}
 
@@ -167,9 +183,20 @@ namespace SimplePatchToolCore
 		{
 			if( !silentMode && !cancel )
 			{
-				lock( logs )
+				if( listener != null && listener.ReceiveLogs )
 				{
-					logs.Enqueue( log );
+					try
+					{
+						listener.LogReceived( log );
+					}
+					catch { }
+				}
+				else
+				{
+					lock( logs )
+					{
+						logs.Enqueue( log );
+					}
 				}
 			}
 		}
@@ -210,6 +237,13 @@ namespace SimplePatchToolCore
 				Log( e.ToString() );
 				Result = PatchResult.Failed;
 			}
+
+			try
+			{
+				if( listener != null )
+					listener.Finished();
+			}
+			catch { }
 
 			IsRunning = false;
 		}
@@ -283,7 +317,7 @@ namespace SimplePatchToolCore
 			string latestVersion = versions[versions.Length - 1];
 			ProjectInfo projectInfo = PatchUtils.GetProjectInfoFromPath( projectInfoPath );
 
-			if( projectInfo.IsSelfPatchingApp && Directory.Exists( selfPatcherPath ) )
+			if( projectInfo.IsSelfPatchingApp && Directory.Exists( selfPatcherPath ) && Directory.GetFileSystemEntries( selfPatcherPath ).Length > 0 )
 				PatchUtils.CopyDirectory( selfPatcherPath, Path.Combine( latestVersion, PatchParameters.SELF_PATCHER_DIRECTORY ) );
 
 			patchCreator = new PatchCreator( latestVersion, tempOutput, projectInfo.Name, Path.GetFileName( latestVersion ) ).SetListener( this ).

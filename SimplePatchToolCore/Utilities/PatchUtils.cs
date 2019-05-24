@@ -458,6 +458,12 @@ namespace SimplePatchToolCore
 			}
 		}
 
+		public static string GetDefaultSelfPatcherExecutablePath( string selfPatcherExecutableName = "SelfPatcher.exe" )
+		{
+			string selfPatcherDirectory = Path.Combine( Path.GetDirectoryName( GetCurrentExecutablePath() ), PatchParameters.SELF_PATCHER_DIRECTORY );
+			return Path.Combine( selfPatcherDirectory, selfPatcherExecutableName );
+		}
+
 		public static string GetCurrentAppVersion( string projectName = null )
 		{
 			string searchPattern = string.Concat( "*", projectName == null ? "" : projectName.Trim(), PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX );
