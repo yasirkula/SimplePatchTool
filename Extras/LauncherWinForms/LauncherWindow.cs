@@ -60,7 +60,11 @@ namespace LauncherWinForms
 				UpdateProgressbar( progressBar, progress.Percentage );
 			};
 			patcherListener.OnOverallProgressChanged += ( progress ) => UpdateProgressbar( overallProgressBar, progress.Percentage );
-			patcherListener.OnVersionInfoFetched += ( versionInfo ) => versionInfo.AddIgnoredPath( MAINAPP_SUBDIRECTORY + "/" );
+			patcherListener.OnVersionInfoFetched += ( versionInfo ) =>
+			{
+				if( isPatchingLauncher )
+					versionInfo.AddIgnoredPath( MAINAPP_SUBDIRECTORY + "/" );
+			};
 			patcherListener.OnVersionFetched += ( currVersion, newVersion ) =>
 			{
 				if( isPatchingLauncher )
