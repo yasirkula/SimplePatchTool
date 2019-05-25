@@ -40,7 +40,7 @@ namespace SimplePatchToolCore
 		private readonly string selfPatcherPath;
 		public readonly string utilitiesPath;
 
-		private readonly string projectInfoPath;
+		public readonly string projectInfoPath;
 		private readonly string downloadLinksPath;
 
 		private PatchCreator patchCreator;
@@ -107,7 +107,10 @@ namespace SimplePatchToolCore
 			Directory.CreateDirectory( utilitiesPath );
 			Directory.CreateDirectory( selfPatcherPath );
 
-			PatchUtils.SerializeProjectInfoToXML( new ProjectInfo(), projectInfoPath );
+			ProjectInfo projectInfo = new ProjectInfo();
+			projectInfo.IgnoredPaths.Add( "*" + PatchParameters.LOG_FILE_NAME );
+			PatchUtils.SerializeProjectInfoToXML( projectInfo, projectInfoPath );
+
 			File.WriteAllText( downloadLinksPath, "PASTE DOWNLOAD LINKS OF THE PATCH FILES HERE" );
 
 			Result = PatchResult.Success;
@@ -334,9 +337,9 @@ namespace SimplePatchToolCore
 				string incrementalPatchesGenerated = tempIncrementalOutput + PatchParameters.INCREMENTAL_PATCH_DIRECTORY;
 				string versionInfoGenerated = tempIncrementalOutput + PatchParameters.VERSION_INFO_FILENAME;
 
-				patchCreator = new PatchCreator( latestVersion, tempIncrementalOutput, projectInfo.Name, Path.GetFileName( latestVersion ) ).
+				patchCreator = new PatchCreator( latestVersion, tempIncrementalOutput, projectInfo.Name, Path.GetFileName( latestVersion ) ).SetListener( this ).
 					SetCompressionFormat( projectInfo.CompressionFormatRepairPatch, projectInfo.CompressionFormatInstallerPatch, projectInfo.CompressionFormatIncrementalPatch ).
-					SetListener( this ).AddIgnoredPaths( projectInfo.IgnoredPaths ).SilentMode( silentMode ).CreateRepairPatch( false ).CreateInstallerPatch( false );
+					AddIgnoredPaths( projectInfo.IgnoredPaths ).SilentMode( silentMode ).CreateRepairPatch( false ).CreateInstallerPatch( false );
 
 				for( int i = versions.Length - 2; i >= 0; i-- )
 				{

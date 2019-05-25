@@ -387,10 +387,10 @@ namespace SimplePatchToolCore
 			}
 			finally
 			{
-				IsRunning = false;
-
-				comms.ListenerCallFinished();
 				comms.DisposeFileLogger();
+
+				IsRunning = false;
+				comms.ListenerCallFinished();
 			}
 
 			Process.GetCurrentProcess().Kill();
@@ -421,10 +421,10 @@ namespace SimplePatchToolCore
 			else
 				comms.Log( comms.FailDetails );
 
-			comms.ListenerCallFinished();
 			comms.DisposeFileLogger();
 
 			IsRunning = false;
+			comms.ListenerCallFinished();
 		}
 
 		private void ThreadPatchFunction()
@@ -450,10 +450,10 @@ namespace SimplePatchToolCore
 			else
 				comms.Log( comms.FailDetails );
 
-			comms.ListenerCallFinished();
 			comms.DisposeFileLogger();
 
 			IsRunning = false;
+			comms.ListenerCallFinished();
 		}
 
 		private PatchResult CheckForUpdatesInternal( bool checkVersionOnly )

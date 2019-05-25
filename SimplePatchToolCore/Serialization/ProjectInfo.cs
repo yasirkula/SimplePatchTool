@@ -60,7 +60,7 @@ namespace SimplePatchToolCore
 
 			BaseDownloadURL = "";
 			MaintenanceCheckURL = "";
-			IgnoredPaths = new List<string>() { "*" + PatchParameters.LOG_FILE_NAME };
+			IgnoredPaths = new List<string>();
 			IsSelfPatchingApp = true;
 		}
 	}

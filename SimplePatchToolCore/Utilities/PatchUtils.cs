@@ -152,10 +152,10 @@ namespace SimplePatchToolCore
 
 					result.IgnoredPathsRegex = new List<Regex>( result.IgnoredPaths.Count + 2 );
 					for( int i = 0; i < result.IgnoredPaths.Count; i++ )
-						result.IgnoredPathsRegex.Add( WildcardToRegex( result.IgnoredPaths[i].Replace( AltDirectorySeparatorChar, Path.DirectorySeparatorChar ) ) );
+						result.AddIgnoredPath( result.IgnoredPaths[i] );
 
-					result.IgnoredPathsRegex.Add( WildcardToRegex( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX ) );
-					result.IgnoredPathsRegex.Add( WildcardToRegex( "*" + PatchParameters.LOG_FILE_NAME ) );
+					result.AddIgnoredPath( "*" + PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX );
+					result.AddIgnoredPath( "*" + PatchParameters.LOG_FILE_NAME );
 				}
 
 				return result;
