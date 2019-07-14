@@ -86,18 +86,11 @@ namespace SimplePatchToolCore
 		{
 			string tarFilePath = outFile + "tmptar";
 
-			// Source: https://github.com/icsharpcode/SharpZipLib/wiki/GZip-and-Tar-Samples#-create-a-tgz-targz
+			// Source: https://github.com/icsharpcode/SharpZipLib/wiki/GZip-and-Tar-Samples#-create-a-tar-or-tgz-with-control-over-filenames-and-data-source
 			using( FileStream outputStream = File.Create( tarFilePath ) )
-			using( TarArchive tarArchive = TarArchive.CreateOutputTarArchive( outputStream ) )
+			using( TarOutputStream tarOutputStream = new TarOutputStream( outputStream ) )
 			{
-				// Currently, SharpZipLib only supports '/', and the folder path must not end with it
-				if( inFolder[inFolder.Length - 1] == '\\' || inFolder[inFolder.Length - 1] == '/' )
-					inFolder = inFolder.Substring( 0, inFolder.Length - 1 ).Replace( '\\', '/' );
-				else
-					inFolder = inFolder.Replace( '\\', '/' );
-
-				tarArchive.RootPath = inFolder;
-				CreateTarRecursive( tarArchive, new DirectoryInfo( inFolder ), "", ignoredPathsRegex );
+				CreateTarRecursive( tarOutputStream, new byte[32 * 1024], new DirectoryInfo( inFolder ), "", ignoredPathsRegex );
 			}
 
 			CompressFile( tarFilePath, outFile, format );
@@ -119,20 +112,27 @@ namespace SimplePatchToolCore
 			File.Delete( tarFilePath );
 		}
 
-		// Source: https://github.com/icsharpcode/SharpZipLib/wiki/GZip-and-Tar-Samples#-create-a-tgz-targz
-		private static void CreateTarRecursive( TarArchive tarArchive, DirectoryInfo directory, string relativePath, List<Regex> ignoredPathsRegex )
+		// Source: https://github.com/icsharpcode/SharpZipLib/wiki/GZip-and-Tar-Samples#-create-a-tar-or-tgz-with-control-over-filenames-and-data-source
+		private static void CreateTarRecursive( TarOutputStream tarOutputStream, byte[] fileCopyBuffer, DirectoryInfo directory, string relativePath, List<Regex> ignoredPathsRegex )
 		{
-			TarEntry tarEntry = TarEntry.CreateEntryFromFile( directory.FullName );
-			tarArchive.WriteEntry( tarEntry, false );
-
 			FileInfo[] files = directory.GetFiles();
 			for( int i = 0; i < files.Length; i++ )
 			{
 				string fileRelativePath = relativePath + files[i].Name;
 				if( !ignoredPathsRegex.PathMatchesPattern( fileRelativePath ) )
 				{
-					tarEntry = TarEntry.CreateEntryFromFile( files[i].FullName );
-					tarArchive.WriteEntry( tarEntry, true );
+					using( Stream inputStream = File.OpenRead( files[i].FullName ) )
+					{
+						TarEntry tarEntry = TarEntry.CreateTarEntry( fileRelativePath.Replace( '\\', '/' ) );
+						tarEntry.Size = inputStream.Length;
+						tarOutputStream.PutNextEntry( tarEntry );
+
+						int numRead;
+						while( ( numRead = inputStream.Read( fileCopyBuffer, 0, fileCopyBuffer.Length ) ) > 0 )
+							tarOutputStream.Write( fileCopyBuffer, 0, numRead );
+					}
+
+					tarOutputStream.CloseEntry();
 				}
 			}
 
@@ -141,7 +141,7 @@ namespace SimplePatchToolCore
 			{
 				string directoryRelativePath = relativePath + subDirectories[i].Name + Path.DirectorySeparatorChar;
 				if( !ignoredPathsRegex.PathMatchesPattern( directoryRelativePath ) )
-					CreateTarRecursive( tarArchive, subDirectories[i], directoryRelativePath, ignoredPathsRegex );
+					CreateTarRecursive( tarOutputStream, fileCopyBuffer, subDirectories[i], directoryRelativePath, ignoredPathsRegex );
 			}
 		}
 
