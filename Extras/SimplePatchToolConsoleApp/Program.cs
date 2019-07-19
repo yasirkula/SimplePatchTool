@@ -24,8 +24,8 @@ namespace SimplePatchToolConsoleApp
 				StringBuilder sb = new StringBuilder( 500 );
 				sb.Append( "===== " ).Append( EXECUTABLE_NAME ).Append( " " ).Append( name ).Append( " =====" ).AppendLine();
 
-				ToStringArguments( sb, "Required parameters: ", requiredArgs, requiredArgsDescriptions );
-				ToStringArguments( sb, "Optional parameters: ", optionalArgs, optionalArgsDescriptions );
+				ToStringArguments( sb, "Required arguments: ", requiredArgs, requiredArgsDescriptions );
+				ToStringArguments( sb, "Optional arguments: ", optionalArgs, optionalArgsDescriptions );
 
 				return sb.ToString();
 			}
@@ -34,7 +34,7 @@ namespace SimplePatchToolConsoleApp
 			{
 				if( args.Length > 0 )
 				{
-					sb.Append( label );
+					sb.AppendLine( label );
 
 					for( int i = 0; i < args.Length; i++ )
 					{
@@ -43,6 +43,8 @@ namespace SimplePatchToolConsoleApp
 							sb.Append( "={" ).Append( argsDescriptions[i] ).Append( "} " );
 						else
 							sb.Append( " " );
+
+						sb.AppendLine();
 					}
 
 					sb.AppendLine();
@@ -110,9 +112,9 @@ namespace SimplePatchToolConsoleApp
 				name = "create",
 				requiredArgs = new string[] { "root", "out", "name", "version" },
 				requiredArgsDescriptions = new string[] { "Root path", "Output path", "Project name", "Version" },
-				optionalArgs = new string[] { "prevRoot", "ignoredPaths", "compressionRepair", "compressionInstaller", "compressionIncremental", "dontCreateRepairPatch", "dontCreateInstallerPatch", "silent" },
-				optionalArgsDescriptions = new string[] { "Previous version path", "Path of ignored paths list", "Repair patch's compression format (LZMA/GZIP/NONE)",
-					"Installer patch's compression format (LZMA/GZIP/NONE)", "Incremental patch's compression format (LZMA/GZIP/NONE)", "", "", "" },
+				optionalArgs = new string[] { "prevRoot", "prevPatchRoot", "ignoredPaths", "compressionRepair", "compressionInstaller", "compressionIncremental", "skipUnchangedPatchFiles", "dontCreateRepairPatch", "dontCreateInstallerPatch", "silent" },
+				optionalArgsDescriptions = new string[] { "Previous version path", "Path of previous version's patch files", "Path of ignored paths list", "Repair patch's compression format (LZMA/GZIP/NONE)",
+					"Installer patch's compression format (LZMA/GZIP/NONE)", "Incremental patch's compression format (LZMA/GZIP/NONE)", "", "", "", "" },
 				hidden = true,
 				function = CreatePatch
 			},
@@ -330,8 +332,8 @@ namespace SimplePatchToolConsoleApp
 
 			PatchCreator patchCreator = new PatchCreator( GetArgument( "root" ), GetArgument( "out" ), GetArgument( "name" ), GetArgument( "version" ) ).
 				LoadIgnoredPathsFromFile( GetArgument( "ignoredPaths" ) ).SetCompressionFormat( repairCompression, installerCompression, incrementalCompression ).
-				CreateRepairPatch( !HasArgument( "dontCreateRepairPatch" ) ).CreateIncrementalPatch( prevRoot != null, prevRoot ).
-				CreateInstallerPatch( !HasArgument( "dontCreateInstallerPatch" ) ).SilentMode( HasArgument( "silent" ) );
+				CreateRepairPatch( !HasArgument( "dontCreateRepairPatch" ) ).CreateIncrementalPatch( prevRoot != null, prevRoot ).CreateInstallerPatch( !HasArgument( "dontCreateInstallerPatch" ) ).
+				SetPreviousPatchFilesRoot( GetArgument( "prevPatchRoot" ), HasArgument( "skipUnchangedPatchFiles" ) ).SilentMode( HasArgument( "silent" ) );
 			bool hasStarted = patchCreator.Run();
 			if( hasStarted )
 			{

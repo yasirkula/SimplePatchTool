@@ -255,13 +255,13 @@ namespace SimplePatchToolCore
 		{
 			if( !Directory.Exists( versionsPath ) )
 			{
-				Log( Localization.Get( StringId.E_XDoesNotExist, versionsPath ) );
+				Log( Localization.Get( StringId.E_DirectoryXMissing, versionsPath ) );
 				return PatchResult.Failed;
 			}
 
 			if( !File.Exists( projectInfoPath ) )
 			{
-				Log( Localization.Get( StringId.E_XDoesNotExist, projectInfoPath ) );
+				Log( Localization.Get( StringId.E_FileXMissing, projectInfoPath ) );
 				return PatchResult.Failed;
 			}
 
@@ -272,53 +272,41 @@ namespace SimplePatchToolCore
 				return PatchResult.Failed;
 			}
 
-			string validationResult = ValidateProject();
-			if( !string.IsNullOrEmpty( validationResult ) )
+			ProjectInfo projectInfo = PatchUtils.GetProjectInfoFromPath( projectInfoPath );
+			if( projectInfo == null )
 			{
-				Log( validationResult );
+				Log( Localization.Get( StringId.E_ProjectInfoCouldNotBeDeserializedFromX, projectInfoPath ) );
+				return PatchResult.Failed;
+			}
+
+			if( projectInfo.Version != ProjectInfo.LATEST_VERSION )
+			{
+				Log( Localization.Get( StringId.E_ProjectInfoOutdated ) );
 				return PatchResult.Failed;
 			}
 
 			Stopwatch timer = Stopwatch.StartNew();
 
 			// Here's how it works:
-			// Move previous incremental patch files to Temp\IncrementalFormer
 			// Generate repair patch and installer patch files on Temp\Output
 			// Foreach incremental patch to generate:
 			//   Generate incremental patch files on Temp\Incremental
-			//   Move the incremental patch files from there to Temp\IncrementalFormer
+			//   Move the incremental patch files from there to Temp\Output\IncrementalPatch
 			// Replace the contents of outputPath with Temp\Output:
 			//   Delete outputPath directory
 			//   Move Temp\Output to outputPath
-			//   Move Temp\IncrementalFormer to outputPath
 			// Delete Temp
 			string tempRoot = projectRoot + "Temp" + Path.DirectorySeparatorChar;
 			string tempOutput = tempRoot + "Output" + Path.DirectorySeparatorChar;
 			string tempIncrementalOutput = tempRoot + "Incremental" + Path.DirectorySeparatorChar;
-			string tempPrevIncrementalPatches = tempRoot + "IncrementalFormer" + Path.DirectorySeparatorChar;
 
 			PatchUtils.DeleteDirectory( tempOutput );
 			PatchUtils.DeleteDirectory( tempIncrementalOutput );
 
-			// Preserve the previous incremental patches
-			string versionInfoPath = outputPath + PatchParameters.VERSION_INFO_FILENAME;
-			string incrementalPatchesPath = outputPath + PatchParameters.INCREMENTAL_PATCH_DIRECTORY;
-
-			if( Directory.Exists( incrementalPatchesPath ) )
-				PatchUtils.MoveDirectory( incrementalPatchesPath, tempPrevIncrementalPatches );
-
-			List<IncrementalPatch> incrementalPatches = new List<IncrementalPatch>();
-			if( File.Exists( versionInfoPath ) )
-			{
-				VersionInfo oldVersionInfo = PatchUtils.GetVersionInfoFromPath( versionInfoPath );
-				if( oldVersionInfo != null )
-					incrementalPatches.AddRange( oldVersionInfo.IncrementalPatches );
-			}
-
 			Array.Sort( versions, new VersionComparer() );
 
 			string latestVersion = versions[versions.Length - 1];
-			ProjectInfo projectInfo = PatchUtils.GetProjectInfoFromPath( projectInfoPath );
+			string versionInfoPath = outputPath + PatchParameters.VERSION_INFO_FILENAME;
 
 			if( projectInfo.IsSelfPatchingApp && Directory.Exists( selfPatcherPath ) && Directory.GetFileSystemEntries( selfPatcherPath ).Length > 0 )
 				PatchUtils.CopyDirectory( selfPatcherPath, Path.Combine( latestVersion, PatchParameters.SELF_PATCHER_DIRECTORY ) );
@@ -326,16 +314,19 @@ namespace SimplePatchToolCore
 			patchCreator = new PatchCreator( latestVersion, tempOutput, projectInfo.Name, Path.GetFileName( latestVersion ) ).SetListener( this ).
 				SetCompressionFormat( projectInfo.CompressionFormatRepairPatch, projectInfo.CompressionFormatInstallerPatch, projectInfo.CompressionFormatIncrementalPatch ).
 				CreateRepairPatch( projectInfo.CreateRepairPatch ).CreateInstallerPatch( projectInfo.CreateInstallerPatch ).CreateIncrementalPatch( false ).
-				AddIgnoredPaths( projectInfo.IgnoredPaths ).SilentMode( silentMode ).SetBaseDownloadURL( projectInfo.BaseDownloadURL ).SetMaintenanceCheckURL( projectInfo.MaintenanceCheckURL );
+				SetPreviousPatchFilesRoot( File.Exists( versionInfoPath ) ? outputPath : null, projectInfo.DontCreatePatchFilesForUnchangedFiles ).AddIgnoredPaths( projectInfo.IgnoredPaths ).
+				SilentMode( silentMode ).SetBaseDownloadURL( projectInfo.BaseDownloadURL ).SetMaintenanceCheckURL( projectInfo.MaintenanceCheckURL );
 
 			// Generate repair patch and installer patch files
 			if( cancel || !ExecuteCurrentPatch() )
 				return PatchResult.Failed;
 
+			List<IncrementalPatch> incrementalPatches = PatchUtils.GetVersionInfoFromPath( tempOutput + PatchParameters.VERSION_INFO_FILENAME ).IncrementalPatches;
 			if( projectInfo.CreateIncrementalPatch && versions.Length > 1 )
 			{
 				string incrementalPatchesGenerated = tempIncrementalOutput + PatchParameters.INCREMENTAL_PATCH_DIRECTORY;
 				string versionInfoGenerated = tempIncrementalOutput + PatchParameters.VERSION_INFO_FILENAME;
+				string incrementalPatchesTarget = tempOutput + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + Path.DirectorySeparatorChar;
 
 				patchCreator = new PatchCreator( latestVersion, tempIncrementalOutput, projectInfo.Name, Path.GetFileName( latestVersion ) ).SetListener( this ).
 					SetCompressionFormat( projectInfo.CompressionFormatRepairPatch, projectInfo.CompressionFormatInstallerPatch, projectInfo.CompressionFormatIncrementalPatch ).
@@ -367,7 +358,7 @@ namespace SimplePatchToolCore
 					incrementalPatches.AddRange( newIncrementalPatches );
 
 					// Move incremental patch files to Temp
-					PatchUtils.MoveDirectory( incrementalPatchesGenerated, tempPrevIncrementalPatches );
+					PatchUtils.MoveDirectory( incrementalPatchesGenerated, incrementalPatchesTarget );
 					PatchUtils.DeleteDirectory( tempIncrementalOutput );
 
 					if( !projectInfo.CreateAllIncrementalPatches )
@@ -377,9 +368,6 @@ namespace SimplePatchToolCore
 
 			PatchUtils.DeleteDirectory( outputPath );
 			PatchUtils.MoveDirectory( tempOutput, outputPath );
-
-			if( Directory.Exists( tempPrevIncrementalPatches ) )
-				PatchUtils.MoveDirectory( tempPrevIncrementalPatches, incrementalPatchesPath );
 
 			VersionInfo versionInfo = PatchUtils.GetVersionInfoFromPath( versionInfoPath );
 			incrementalPatches.Sort( PatchUtils.IncrementalPatchComparison );
@@ -403,40 +391,6 @@ namespace SimplePatchToolCore
 			}
 
 			return false;
-		}
-
-		// Returns null if project is valid
-		private string ValidateProject()
-		{
-			System.Text.StringBuilder sb = new System.Text.StringBuilder( 300 );
-
-			if( !Directory.Exists( versionsPath ) )
-				sb.AppendLine( Localization.Get( StringId.E_DirectoryXMissing, versionsPath ) );
-
-			if( !File.Exists( projectInfoPath ) )
-				sb.AppendLine( Localization.Get( StringId.E_FileXMissing, projectInfoPath ) );
-			else
-			{
-				ProjectInfo projectInfo = null;
-				try
-				{
-					projectInfo = PatchUtils.GetProjectInfoFromPath( projectInfoPath );
-				}
-				catch( Exception e )
-				{
-					sb.AppendLine( e.ToString() );
-				}
-
-				if( projectInfo == null )
-					sb.AppendLine( Localization.Get( StringId.E_ProjectInfoCouldNotBeDeserializedFromX, projectInfoPath ) );
-				else if( projectInfo.Version != ProjectInfo.LATEST_VERSION )
-					sb.AppendLine( Localization.Get( StringId.E_ProjectInfoOutdated ) );
-			}
-
-			if( sb.Length == 0 )
-				return null;
-
-			return string.Concat( Localization.Get( StringId.E_ProjectInvalid ), Environment.NewLine, Environment.NewLine, sb.ToString() );
 		}
 	}
 }

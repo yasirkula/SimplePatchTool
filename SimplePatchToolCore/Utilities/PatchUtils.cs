@@ -464,10 +464,16 @@ namespace SimplePatchToolCore
 			return Path.Combine( selfPatcherDirectory, selfPatcherExecutableName );
 		}
 
-		public static string GetCurrentAppVersion( string projectName = null )
+		public static string GetCurrentAppVersion( string projectName = null, string rootPath = null )
 		{
 			string searchPattern = string.Concat( "*", projectName == null ? "" : projectName.Trim(), PatchParameters.VERSION_HOLDER_FILENAME_POSTFIX );
-			string[] versionHolders = Directory.GetFiles( Path.GetDirectoryName( GetCurrentExecutablePath() ), searchPattern, SearchOption.AllDirectories );
+
+			string[] versionHolders;
+			if( rootPath == null )
+				versionHolders = Directory.GetFiles( Path.GetDirectoryName( GetCurrentExecutablePath() ), searchPattern, SearchOption.AllDirectories );
+			else
+				versionHolders = Directory.GetFiles( rootPath, searchPattern, SearchOption.TopDirectoryOnly );
+
 			if( versionHolders.Length > 0 )
 				return File.ReadAllText( versionHolders[0] );
 

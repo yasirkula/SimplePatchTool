@@ -30,6 +30,10 @@ namespace SimplePatchToolCore
 		private readonly string incrementalPatchTempPath;
 		private readonly string projectName;
 
+		private string previousPatchFilesRoot;
+		private VersionInfo previousVersionInfo;
+		private bool dontCreatePatchFilesForUnchangedFiles;
+
 		private string previousVersionRoot;
 		private int diffQuality;
 
@@ -97,6 +101,10 @@ namespace SimplePatchToolCore
 			}
 
 			Localization.Get( StringId.Done ); // Force the localization system to be initialized with the current culture/language
+
+			previousPatchFilesRoot = null;
+			previousVersionInfo = null;
+			dontCreatePatchFilesForUnchangedFiles = false;
 
 			generateRepairPatch = true;
 			generateInstallerPatch = true;
@@ -193,8 +201,8 @@ namespace SimplePatchToolCore
 			return this;
 		}
 
-		/// <exception cref = "DirectoryNotFoundException">Previous version's path does not exist</exception>
 		/// <exception cref = "ArgumentException">previousVersionRoot is empty</exception>
+		/// <exception cref = "DirectoryNotFoundException">Previous version's path does not exist</exception>
 		/// <exception cref = "FileNotFoundException">Previous version's version code does not exist</exception>
 		/// <exception cref = "FormatException">Previous version's version code is not valid</exception>
 		/// <exception cref = "InvalidOperationException">Previous version's version code is greater than or equal to current version's version code</exception>
@@ -254,6 +262,43 @@ namespace SimplePatchToolCore
 				compressionFormatRepairPatch = repairPatch;
 				compressionFormatInstallerPatch = installerPatch;
 				compressionFormatIncrementalPatch = incrementalPatch;
+			}
+
+			return this;
+		}
+
+		/// <exception cref = "DirectoryNotFoundException">Previous patch files' directory does not exist</exception>
+		/// <exception cref = "FileNotFoundException">VersionInfo of the previous patch files does not exist</exception>
+		/// <exception cref = "FormatException">VersionInfo of the previous patch could not be deserialized</exception>
+		public PatchCreator SetPreviousPatchFilesRoot( string previousPatchFilesRoot, bool dontCreatePatchFilesForUnchangedFiles = false )
+		{
+			if( previousPatchFilesRoot != null )
+				previousPatchFilesRoot = previousPatchFilesRoot.Trim();
+
+			if( string.IsNullOrEmpty( previousPatchFilesRoot ) )
+			{
+				this.previousPatchFilesRoot = null;
+				this.previousVersionInfo = null;
+				this.dontCreatePatchFilesForUnchangedFiles = false;
+			}
+			else
+			{
+				previousPatchFilesRoot = PatchUtils.GetPathWithTrailingSeparatorChar( previousPatchFilesRoot );
+
+				if( !Directory.Exists( previousPatchFilesRoot ) )
+					throw new DirectoryNotFoundException( Localization.Get( StringId.E_XDoesNotExist, previousPatchFilesRoot ) );
+
+				string previousVersionInfoPath = previousPatchFilesRoot + PatchParameters.VERSION_INFO_FILENAME;
+				if( !File.Exists( previousVersionInfoPath ) )
+					throw new FileNotFoundException( Localization.Get( StringId.E_XDoesNotExist, previousVersionInfoPath ) );
+
+				VersionInfo previousVersionInfo = PatchUtils.GetVersionInfoFromPath( previousVersionInfoPath );
+				if( previousVersionInfo == null )
+					throw new FormatException( Localization.Get( StringId.E_VersionInfoCouldNotBeDeserializedFromX, previousVersionInfoPath ) );
+
+				this.previousPatchFilesRoot = previousPatchFilesRoot;
+				this.previousVersionInfo = previousVersionInfo;
+				this.dontCreatePatchFilesForUnchangedFiles = dontCreatePatchFilesForUnchangedFiles;
 			}
 
 			return this;
@@ -354,6 +399,19 @@ namespace SimplePatchToolCore
 			PatchUtils.DeleteDirectory( outputPath );
 			Directory.CreateDirectory( outputPath );
 
+			// Preserve previous incremental patch info
+			if( previousVersionInfo != null )
+			{
+				versionInfo.IncrementalPatches.AddRange( previousVersionInfo.IncrementalPatches );
+
+				if( !dontCreatePatchFilesForUnchangedFiles )
+				{
+					string previousIncrementalPatches = previousPatchFilesRoot + PatchParameters.INCREMENTAL_PATCH_DIRECTORY + Path.DirectorySeparatorChar;
+					if( Directory.Exists( previousIncrementalPatches ) )
+						PatchUtils.CopyDirectory( previousIncrementalPatches, incrementalPatchOutputPath );
+				}
+			}
+
 			if( cancel )
 				return PatchResult.Failed;
 
@@ -399,6 +457,15 @@ namespace SimplePatchToolCore
 			Log( Localization.Get( StringId.CompressingFilesToDestination ) );
 			Stopwatch compressTimer = Stopwatch.StartNew();
 
+			// Check if we can use existing repair patch files for files that didn't change since the last patch
+			string previousRepairPatchFilesRoot = null;
+			if( previousVersionInfo != null && previousVersionInfo.CompressionFormat == compressionFormatRepairPatch )
+			{
+				previousRepairPatchFilesRoot = previousPatchFilesRoot + PatchParameters.REPAIR_PATCH_DIRECTORY + Path.DirectorySeparatorChar;
+				if( !Directory.Exists( previousRepairPatchFilesRoot ) )
+					previousRepairPatchFilesRoot = null;
+			}
+
 			for( int i = 0; i < versionInfo.Files.Count; i++ )
 			{
 				if( cancel )
@@ -407,6 +474,33 @@ namespace SimplePatchToolCore
 				VersionItem patchItem = versionInfo.Files[i];
 				string fromAbsolutePath = rootPath + patchItem.Path;
 				string toAbsolutePath = repairPatchOutputPath + patchItem.Path + PatchParameters.REPAIR_PATCH_FILE_EXTENSION;
+
+				if( previousRepairPatchFilesRoot != null )
+				{
+					VersionItem previousPatchItem = previousVersionInfo.Files.Find( ( item ) => item.Path == patchItem.Path );
+					if( previousPatchItem != null && previousPatchItem.FileSize == patchItem.FileSize && previousPatchItem.Md5Hash == patchItem.Md5Hash )
+					{
+						if( dontCreatePatchFilesForUnchangedFiles )
+						{
+							patchItem.CompressedFileSize = previousPatchItem.CompressedFileSize;
+							patchItem.CompressedMd5Hash = previousPatchItem.CompressedMd5Hash;
+
+							continue;
+						}
+
+						FileInfo previousCompressedFile = new FileInfo( previousRepairPatchFilesRoot + patchItem.Path + PatchParameters.REPAIR_PATCH_FILE_EXTENSION );
+						if( previousCompressedFile.Exists && previousCompressedFile.MatchesSignature( previousPatchItem.CompressedFileSize, previousPatchItem.CompressedMd5Hash ) )
+						{
+							Log( Localization.Get( StringId.CopyingXToPatch, previousCompressedFile.FullName ) );
+							PatchUtils.CopyFile( previousCompressedFile.FullName, toAbsolutePath );
+
+							patchItem.CompressedFileSize = previousPatchItem.CompressedFileSize;
+							patchItem.CompressedMd5Hash = previousPatchItem.CompressedMd5Hash;
+
+							continue;
+						}
+					}
+				}
 
 				Log( Localization.Get( StringId.CompressingXToY, fromAbsolutePath, toAbsolutePath ) );
 				compressTimer.Reset();

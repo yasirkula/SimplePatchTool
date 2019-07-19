@@ -61,7 +61,6 @@ namespace SimplePatchToolCore
 		E_PreviousVersionXIsNotLessThanY,
 		E_ProjectInfoCouldNotBeDeserializedFromX,
 		E_ProjectInfoOutdated,
-		E_ProjectInvalid,
 		E_SelfPatcherDoesNotExist,
 		E_ServersUnderMaintenance,
 		E_VersionCodeXIsInvalid,
@@ -262,8 +261,7 @@ namespace SimplePatchToolCore
 			Strings[StringId.E_PatchXCouldNotBeDownloaded] = "ERROR: patch {0} could not be downloaded";
 			Strings[StringId.E_PreviousVersionXIsNotLessThanY] = "ERROR: previous version ({0}) is greater than or equal to current version ({1})";
 			Strings[StringId.E_ProjectInfoCouldNotBeDeserializedFromX] = "ERROR: project info could not be deserialized from {0}";
-			Strings[StringId.E_ProjectInfoOutdated] = "ERROR: project info is outdated, its properties may have changed";
-			Strings[StringId.E_ProjectInvalid] = "ERROR: project is in invalid state. Create a new project to resolve the following issues:";
+			Strings[StringId.E_ProjectInfoOutdated] = "ERROR: project info is outdated. Create a new project at a temporary path and examine its Settings.xml file to see the new/removed settings. Add any new settings to your own Settings.xml (also update the value of the 'Surum' attribute)";
 			Strings[StringId.E_SelfPatcherDoesNotExist] = "ERROR: self patcher does not exist";
 			Strings[StringId.E_ServersUnderMaintenance] = "ERROR: servers are currently under maintenance";
 			Strings[StringId.E_VersionCodeXIsInvalid] = "ERROR: version code '{0}' is invalid";
@@ -357,8 +355,7 @@ namespace SimplePatchToolCore
 			Strings[StringId.E_PatchXCouldNotBeDownloaded] = "HATA: patch {0} indirilemedi";
 			Strings[StringId.E_PreviousVersionXIsNotLessThanY] = "HATA: önceki sürümün versiyonu ({0}) mevcut versiyona ({1}) eşit veya daha büyük";
 			Strings[StringId.E_ProjectInfoCouldNotBeDeserializedFromX] = "HATA: {0} konumundaki proje bilgileri bozuk";
-			Strings[StringId.E_ProjectInfoOutdated] = "HATA: proje dosyasının formatı eskimiş";
-			Strings[StringId.E_ProjectInvalid] = "HATA: proje yapısı bozuk. Aşağıdaki hataları gidermek için yeni bir proje oluşturun:";
+			Strings[StringId.E_ProjectInfoOutdated] = "HATA: proje dosyasının formatı eskimiş. Geçici olarak yeni bir proje oluşturun ve bu projenin Settings.xml dosyasını inceleyin. Ardından kendi Settings'inizdeki eksik/fazla ayarları tespit edip güncelleyin ('Surum' etiketinin değerini de güncelleyin)";
 			Strings[StringId.E_SelfPatcherDoesNotExist] = "HATA: oto-patch dosyası mevcut değil";
 			Strings[StringId.E_ServersUnderMaintenance] = "HATA: sunucular şu anda bakım modunda";
 			Strings[StringId.E_VersionCodeXIsInvalid] = "HATA: versiyon kodu '{0}' geçersiz";

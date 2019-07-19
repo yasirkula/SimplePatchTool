@@ -80,6 +80,11 @@ namespace SimplePatchToolCore
 
 		private bool checkForMultipleRunningInstances;
 
+		private DownloadHandlerFactory downloadHandlerFactory;
+		private FreeDiskSpaceCalculator freeDiskSpaceCalculator;
+		private XMLVerifier versionInfoVerifier;
+		private XMLVerifier patchInfoVerifier;
+
 		private readonly List<IncrementalPatch> incrementalPatches;
 		private readonly List<IncrementalPatchInfo> incrementalPatchesInfo;
 		private readonly HashSet<string> filesInVersion;
@@ -88,11 +93,6 @@ namespace SimplePatchToolCore
 		public PatchOperation Operation { get; private set; }
 		public PatchMethod PatchMethod { get; private set; }
 		public PatchResult Result { get; private set; }
-
-		internal DownloadHandlerFactory DownloadHandlerFactory { get; private set; }
-		internal FreeDiskSpaceCalculator FreeDiskSpaceCalculator { get; private set; }
-		internal XMLVerifier VersionInfoVerifier { get; private set; }
-		internal XMLVerifier PatchInfoVerifier { get; private set; }
 
 		public string NewVersion { get { return comms.VersionInfo != null ? comms.VersionInfo.Version : null; } }
 
@@ -220,7 +220,7 @@ namespace SimplePatchToolCore
 				if( factoryFunction == null )
 					factoryFunction = () => new CookieAwareWebClient(); // Default WebClient based download handler
 
-				DownloadHandlerFactory = factoryFunction;
+				downloadHandlerFactory = factoryFunction;
 				comms.DownloadManager.SetDownloadHandler( factoryFunction() );
 			}
 
@@ -234,7 +234,7 @@ namespace SimplePatchToolCore
 				if( freeSpaceCalculatorFunction == null )
 					freeSpaceCalculatorFunction = ( drive ) => new DriveInfo( drive ).AvailableFreeSpace;
 
-				FreeDiskSpaceCalculator = freeSpaceCalculatorFunction;
+				freeDiskSpaceCalculator = freeSpaceCalculatorFunction;
 			}
 
 			return this;
@@ -242,13 +242,13 @@ namespace SimplePatchToolCore
 
 		public SimplePatchTool UseVersionInfoVerifier( XMLVerifier verifierFunction )
 		{
-			VersionInfoVerifier = verifierFunction;
+			versionInfoVerifier = verifierFunction;
 			return this;
 		}
 
 		public SimplePatchTool UsePatchInfoVerifier( XMLVerifier verifierFunction )
 		{
-			PatchInfoVerifier = verifierFunction;
+			patchInfoVerifier = verifierFunction;
 			return this;
 		}
 
@@ -293,40 +293,39 @@ namespace SimplePatchToolCore
 
 		public bool CheckForUpdates( bool checkVersionOnly = true )
 		{
-			if( !IsRunning )
-			{
-				IsRunning = true;
-				Operation = PatchOperation.CheckingForUpdates;
-				PatchMethod = PatchMethod.None;
-				comms.Cancel = false;
+			if( IsRunning )
+				return false;
 
-				PatchUtils.CreateBackgroundThread( new ParameterizedThreadStart( ThreadCheckForUpdatesFunction ) ).Start( checkVersionOnly );
-				return true;
-			}
+			IsRunning = true;
+			Operation = PatchOperation.CheckingForUpdates;
+			PatchMethod = PatchMethod.None;
+			comms.Cancel = false;
 
-			return false;
+			PatchUtils.CreateBackgroundThread( new ParameterizedThreadStart( ThreadCheckForUpdatesFunction ) ).Start( checkVersionOnly );
+			return true;
 		}
 
 		public bool Run( bool selfPatching )
 		{
-			if( !IsRunning )
-			{
-				IsRunning = true;
-				Operation = selfPatching ? PatchOperation.SelfPatching : PatchOperation.Patching;
-				PatchMethod = PatchMethod.None;
-				comms.Cancel = false;
+			if( IsRunning )
+				return false;
 
-				PatchUtils.CreateBackgroundThread( new ThreadStart( ThreadPatchFunction ) ).Start();
-				return true;
-			}
+			IsRunning = true;
+			Operation = selfPatching ? PatchOperation.SelfPatching : PatchOperation.Patching;
+			PatchMethod = PatchMethod.None;
+			comms.Cancel = false;
 
-			return false;
+			PatchUtils.CreateBackgroundThread( new ThreadStart( ThreadPatchFunction ) ).Start();
+			return true;
 		}
 
 		// For self-patching applications only - should be called after Run(true) returns PatchResult.Success
 		// Starts specified self patcher executable with required parameters
 		public bool ApplySelfPatch( string selfPatcherExecutable, string postSelfPatchExecutable = null )
 		{
+			if( IsRunning )
+				return false;
+
 			IsRunning = true;
 			Operation = PatchOperation.ApplyingSelfPatch;
 
@@ -863,12 +862,11 @@ namespace SimplePatchToolCore
 				FileInfo[] updatedFiles = updatedFilesDir.GetFiles();
 				for( int i = 0; i < updatedFiles.Length; i++ )
 				{
-					// Don't update the version holder file until everything else is updated properly
 					if( updatedFiles[i].Name != versionHolderFilename )
 						sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( updatedFiles[i].Name ).Append( separator ).Append( comms.RootPath ).Append( updatedFiles[i].Name );
 				}
 
-				// Update the version holder now
+				// Update the version holder only after everything else is updated properly
 				sb.Append( separator ).Append( comms.DecompressedFilesPath ).Append( versionHolderFilename ).Append( separator ).Append( comms.RootPath ).Append( versionHolderFilename );
 
 				// 3. Delete obsolete files
@@ -923,7 +921,7 @@ namespace SimplePatchToolCore
 				return false;
 			}
 
-			if( VersionInfoVerifier != null && !VersionInfoVerifier( ref versionInfoXML ) )
+			if( versionInfoVerifier != null && !versionInfoVerifier( ref versionInfoXML ) )
 			{
 				FailReason = PatchFailReason.CantVerifyVersionInfo;
 				FailDetails = Localization.Get( StringId.E_VersionInfoCouldNotBeVerified );
@@ -1049,7 +1047,7 @@ namespace SimplePatchToolCore
 					return false;
 				}
 
-				if( PatchInfoVerifier != null && !PatchInfoVerifier( ref patchInfoXML ) )
+				if( patchInfoVerifier != null && !patchInfoVerifier( ref patchInfoXML ) )
 				{
 					FailReason = PatchFailReason.CantVerifyPatchInfo;
 					FailDetails = Localization.Get( StringId.E_PatchInfoCouldNotBeVerified );
@@ -1128,7 +1126,7 @@ namespace SimplePatchToolCore
 
 		private bool CheckFreeSpace( string drive, long requiredFreeSpace )
 		{
-			if( FreeDiskSpaceCalculator( drive ) < requiredFreeSpace )
+			if( freeDiskSpaceCalculator( drive ) < requiredFreeSpace )
 			{
 				FailReason = PatchFailReason.InsufficientSpace;
 				FailDetails = Localization.Get( StringId.E_InsufficientSpaceXNeededInY, requiredFreeSpace.ToMegabytes() + "MB", drive );

@@ -7,7 +7,7 @@ namespace SimplePatchToolCore
 	[XmlRoot( "ProjectInfo" )]
 	public class ProjectInfo
 	{
-		internal const int LATEST_VERSION = 1;
+		internal const int LATEST_VERSION = 2;
 
 		[XmlAttribute( AttributeName = "Surum" )]
 		public int Version;
@@ -31,6 +31,8 @@ namespace SimplePatchToolCore
 		[XmlElement( ElementName = "CreateIncrementalPatchesFromEachPreviousVersionToNewVersion" )]
 		public bool CreateAllIncrementalPatches;
 
+		public bool DontCreatePatchFilesForUnchangedFiles;
+
 		public int BinaryDiffQuality;
 
 		public CompressionFormat CompressionFormatRepairPatch;
@@ -52,6 +54,7 @@ namespace SimplePatchToolCore
 			CreateIncrementalPatch = true;
 			CreateAllIncrementalPatches = false;
 
+			DontCreatePatchFilesForUnchangedFiles = false;
 			BinaryDiffQuality = 3;
 
 			CompressionFormatRepairPatch = CompressionFormat.LZMA;
