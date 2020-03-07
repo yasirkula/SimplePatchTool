@@ -8,11 +8,11 @@ The console app that is used throughout the [wiki](https://github.com/yasirkula/
 
 ## SelfPatcherConsoleApp
 
-An example implementation of a console-based self patcher executable. It depends on the SelfPatcherCore project.
+An example implementation of a console-based self patcher. It depends on the SelfPatcherCore project.
 
 ## SelfPatcherWinForms
 
-A WinForms-based self patcher executable implementation. It depends on the SelfPatcherCore project.
+A WinForms-based self patcher implementation. It depends on the SelfPatcherCore project.
 
 ![self-patcher-winforms](../Images/selfpatcher-winforms.png)
 

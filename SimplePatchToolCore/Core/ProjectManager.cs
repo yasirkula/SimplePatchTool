@@ -34,14 +34,14 @@ namespace SimplePatchToolCore
 
 		private IListener listener;
 
-		private readonly string projectRoot;
-		private readonly string versionsPath;
-		private readonly string outputPath;
-		private readonly string selfPatcherPath;
+		public readonly string projectRoot;
+		public readonly string versionsPath;
+		public readonly string outputPath;
+		public readonly string selfPatcherPath;
 		public readonly string utilitiesPath;
 
 		public readonly string projectInfoPath;
-		private readonly string downloadLinksPath;
+		public readonly string downloadLinksPath;
 
 		private PatchCreator patchCreator;
 
@@ -109,7 +109,7 @@ namespace SimplePatchToolCore
 
 			ProjectInfo projectInfo = new ProjectInfo();
 			projectInfo.IgnoredPaths.Add( "*" + PatchParameters.LOG_FILE_NAME );
-			PatchUtils.SerializeProjectInfoToXML( projectInfo, projectInfoPath );
+			SaveProjectInfo( projectInfo );
 
 			File.WriteAllText( downloadLinksPath, "PASTE DOWNLOAD LINKS OF THE PATCH FILES HERE" );
 
@@ -180,6 +180,16 @@ namespace SimplePatchToolCore
 
 		void PatchCreator.IListener.Finished()
 		{
+		}
+
+		public ProjectInfo LoadProjectInfo()
+		{
+			return PatchUtils.GetProjectInfoFromPath( projectInfoPath );
+		}
+
+		public void SaveProjectInfo( ProjectInfo projectInfo )
+		{
+			PatchUtils.SerializeProjectInfoToXML( projectInfo, projectInfoPath );
 		}
 
 		private void Log( string log )

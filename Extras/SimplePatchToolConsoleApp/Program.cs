@@ -246,9 +246,7 @@ namespace SimplePatchToolConsoleApp
 		{
 			ProjectManager project = new ProjectManager( GetArgument( "projectRoot" ) ).SilentMode( HasArgument( "silent" ) );
 			project.CreateProject();
-
 			WaitForProjectManager( project );
-			SecurityUtils.CreateRSAKeyPairInDirectory( project.utilitiesPath );
 
 			Console.WriteLine( "\nOperation successful..." );
 		}

@@ -253,6 +253,11 @@ namespace LauncherWinForms
 
 		private void UpdateProgressbar( ProgressBar progressBar, int value )
 		{
+			if( value < 0 )
+				value = 0;
+			else if( value > 100 )
+				value = 100;
+
 			RunOnUiThread( progressBar, () => progressBar.Value = value );
 		}
 

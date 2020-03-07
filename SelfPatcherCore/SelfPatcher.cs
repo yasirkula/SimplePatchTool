@@ -281,7 +281,7 @@ namespace SelfPatcherCore
 			}
 		}
 
-		private void DeleteDirectory( string path )
+		public static void DeleteDirectory( string path )
 		{
 			if( Directory.Exists( path ) )
 			{
@@ -293,7 +293,7 @@ namespace SelfPatcherCore
 					{
 						try
 						{
-							Directory.Delete( path, true );
+							DeleteDirectoryRecursive( new DirectoryInfo( path ) );
 							break;
 						}
 						catch( IOException )
@@ -302,12 +302,32 @@ namespace SelfPatcherCore
 						}
 					}
 					else
-						Directory.Delete( path, true );
+						DeleteDirectoryRecursive( new DirectoryInfo( path ) );
 				}
 
 				while( Directory.Exists( path ) )
 					Thread.Sleep( 100 );
 			}
+		}
+
+		// Avoids occasional UnauthorizedAccessException
+		// Credit: https://stackoverflow.com/a/8521573/2373034
+		private static void DeleteDirectoryRecursive( DirectoryInfo directory )
+		{
+			directory.Attributes = FileAttributes.Normal;
+
+			FileInfo[] files = directory.GetFiles();
+			for( int i = 0; i < files.Length; i++ )
+			{
+				files[i].Attributes = FileAttributes.Normal;
+				files[i].Delete();
+			}
+
+			DirectoryInfo[] subDirectories = directory.GetDirectories();
+			for( int i = 0; i < subDirectories.Length; i++ )
+				DeleteDirectoryRecursive( subDirectories[i] );
+
+			directory.Delete( true );
 		}
 
 		private string GetPathWithTrailingSeparatorChar( string path )
