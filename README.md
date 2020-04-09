@@ -4,6 +4,8 @@
 
 SimplePatchTool is a general-purpose patcher library for **standalone** applications.
 
+**[Support the Developer ☕](https://yasirkula.itch.io/unity3d)**
+
 ## FEATURES
 
 - written completely in **C#**
