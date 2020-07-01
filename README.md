@@ -1,5 +1,9 @@
 # Simple Patch Tool
 
+### THIS PROJECT IS NO LONGER MAINTAINED.
+
+---
+
 ![screenshot](Images/launcher-winforms.png)
 
 SimplePatchTool is a general-purpose patcher library for **standalone** applications.
